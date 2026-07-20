@@ -53,7 +53,9 @@ onMounted(() => {
   // The container can be 0-sized at mount (e.g. inside a panel that lays out
   // later); keep the map sized to it.
   resizeObserver = new ResizeObserver(() => instance.updateSize());
-  if (container.value) resizeObserver.observe(container.value);
+  if (container.value) {
+    resizeObserver.observe(container.value);
+  }
 });
 
 onBeforeUnmount(() => {
