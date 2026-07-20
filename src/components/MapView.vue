@@ -5,8 +5,8 @@ import TileLayer from "ol/layer/Tile";
 import OSM from "ol/source/OSM";
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from "vue";
 
-import { provideMap } from "@/composables/useMap";
-import { RD, registerRdProjection } from "@/projections/rd";
+import { provideMap } from "../composables/useMap";
+import { RD, registerRdProjection } from "../projections/rd";
 
 const props = withDefaults(
   defineProps<{
@@ -29,6 +29,7 @@ const emit = defineEmits<{
 
 const container = useTemplateRef<HTMLDivElement>("container");
 const map = shallowRef<Map>();
+let resizeObserver: ResizeObserver | undefined;
 
 // Share the ref during setup so descendants can inject it; it fills in on mount.
 provideMap(map);
@@ -48,9 +49,15 @@ onMounted(() => {
 
   map.value = instance;
   emit("ready", instance);
+
+  // The container can be 0-sized at mount (e.g. inside a panel that lays out
+  // later); keep the map sized to it.
+  resizeObserver = new ResizeObserver(() => instance.updateSize());
+  if (container.value) resizeObserver.observe(container.value);
 });
 
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
   map.value?.setTarget(undefined);
   map.value?.dispose();
 });

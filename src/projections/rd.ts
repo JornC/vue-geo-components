@@ -22,6 +22,9 @@ export function registerRdProjection(): void {
   }
   proj4.defs(RD, RD_DEFINITION);
   register(proj4);
+  // Extent of the RD grid; needed for tile-grid resolutions and for reprojecting
+  // raster sources (e.g. OSM) into RD.
+  getProjection(RD)?.setExtent([-285401.92, 22598.08, 595401.92, 903401.92]);
   registered = true;
 }
 
