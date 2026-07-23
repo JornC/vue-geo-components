@@ -27,6 +27,14 @@ export default defineConfigWithVueTs(
     },
   },
 
+  {
+    name: "geo/layer-model",
+    files: ["src/layers/types.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+
   // Must be last: turns off every rule that Prettier owns.
   skipFormattingConfig,
 );
