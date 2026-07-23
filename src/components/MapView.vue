@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import Map from "ol/Map";
 import View from "ol/View";
-import TileLayer from "ol/layer/Tile";
-import OSM from "ol/source/OSM";
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from "vue";
 
 import { provideMap } from "../composables/useMap";
@@ -37,9 +35,10 @@ provideMap(map);
 onMounted(() => {
   registerRdProjection();
 
+  // No base layer is imposed: layers (background and otherwise) are the
+  // consumer's choice, added on `ready` - e.g. via createPdokBackgroundLayer.
   const instance = new Map({
     target: container.value ?? undefined,
-    layers: [new TileLayer({ source: new OSM() })],
     view: new View({
       projection: props.projection,
       center: props.center,
