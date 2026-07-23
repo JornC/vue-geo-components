@@ -43,7 +43,7 @@ export interface LayerProps {
   onUnHover?: () => void;
   onClick?: (feature: FeatureLike) => void;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- preserves GRIP's loose style-function contract; tightened in a later decoupling step.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- style functions return OpenLayers styles of varying shape
   styleFunction?: (feature: FeatureLike, resolution?: number) => any;
 
   minZoom?: number;
@@ -88,7 +88,7 @@ export interface VectorTileLayerProps extends LayerProps {
   viewParams?: () => string;
   declutter?: boolean;
   tileGrid: WMTSTileGrid;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WMTS capabilities matrix limits are untyped upstream; tightened in a later decoupling step.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped WMTS capabilities matrix limits
   matrixLimits: Array<any>;
 }
 

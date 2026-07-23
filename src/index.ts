@@ -7,7 +7,7 @@ export { useMap, provideMap, mapInjectionKey } from "./composables/useMap";
 
 export { RD, registerRdProjection, isRdRegistered } from "./projections/rd";
 
-// Shared layer model: the descriptor types the map engine consumes, plus generic helpers.
+// Shared map layer model.
 export { LayerType, LegendType, ColorRangeIconType, LegendIconType } from "./layers/types";
 export type {
   GeoInformation,

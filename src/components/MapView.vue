@@ -35,8 +35,7 @@ provideMap(map);
 onMounted(() => {
   registerRdProjection();
 
-  // No base layer is imposed: layers (background and otherwise) are the
-  // consumer's choice, added on `ready` - e.g. via createPdokBackgroundLayer.
+  // Layers are added by the consumer on `ready`.
   const instance = new Map({
     target: container.value ?? undefined,
     view: new View({
