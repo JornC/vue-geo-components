@@ -40,6 +40,7 @@ export interface LayerProps {
   zIndex?: number;
 
   onHover?: (feature: FeatureLike) => void;
+  hoverableFunction?: () => boolean;
   onUnHover?: () => void;
   onClick?: (feature: FeatureLike) => void;
 
