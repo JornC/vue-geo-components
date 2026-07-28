@@ -1,6 +1,6 @@
-import type { Extent } from "ol/extent.js";
 import { getTopLeft, getWidth } from "ol/extent.js";
-import { GeoJSON, MVT } from "ol/format.js";
+import GeoJSON from "ol/format/GeoJSON.js";
+import MVT from "ol/format/MVT.js";
 import ImageLayer from "ol/layer/Image.js";
 import type Layer from "ol/layer/Layer.js";
 import TileLayer from "ol/layer/Tile.js";
@@ -8,7 +8,7 @@ import VectorLayer from "ol/layer/Vector.js";
 import VectorTileLayer from "ol/layer/VectorTile.js";
 import { bbox } from "ol/loadingstrategy.js";
 import type { Projection } from "ol/proj.js";
-import { ImageWMS } from "ol/source.js";
+import ImageWMS from "ol/source/ImageWMS.js";
 import VectorSource from "ol/source/Vector.js";
 import VectorTileSource from "ol/source/VectorTile.js";
 import WMTS from "ol/source/WMTS.js";
@@ -161,7 +161,7 @@ function createWfsLayer(layerProps: WFSLayerProps, projection: Projection): Laye
 }
 
 function createWmtsLayer(layerProps: WMTSLayerProps, projection: Projection): Layer {
-  const projectionExtent = projection.getExtent() as Extent;
+  const projectionExtent = projection.getExtent();
   const resolutionCount = layerProps.resolutionCount ?? DEFAULT_RESOLUTION_COUNT;
 
   const size = getWidth(projectionExtent) / TILE_SIZE;
