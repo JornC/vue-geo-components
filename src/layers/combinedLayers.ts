@@ -31,7 +31,7 @@ export class CombinedLayers {
     this.layers = layers;
   }
 
-  /** Opacity of the selected layer, 0 to 1, matching OpenLayers. */
+  /** 0 to 1, matching OpenLayers. */
   getLayerOpacity(): number {
     return this.selectedLayer?.layerRef?.getOpacity() ?? 1;
   }

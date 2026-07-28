@@ -3,9 +3,8 @@
 
 export { default as MapView } from "./components/MapView.vue";
 
-// Layer panel UI. SimpleFoldout, ToggleIcon and VerticalCollapse stay internal:
-// they are the chrome LayerItemTemplate is built from, not an offer of a
-// general-purpose widget set.
+// SimpleFoldout, ToggleIcon and VerticalCollapse stay internal: they are the
+// chrome LayerItemTemplate is built from.
 export { default as LayerItemTemplate } from "./components/LayerItemTemplate.vue";
 export { default as LayerItemsLegend } from "./components/LayerItemsLegend.vue";
 export type { LegendDisplay, LegendItem } from "./components/legendDisplay";

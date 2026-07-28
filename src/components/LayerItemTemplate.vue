@@ -14,7 +14,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  /** The user asked to flip visibility; the consumer owns the state. */
+  /** No payload: the consumer owns the visibility state. */
   toggle: [];
   opacity: [value: number];
 }>();

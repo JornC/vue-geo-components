@@ -5,7 +5,6 @@
 </template>
 
 <style scoped>
-/* Colours come from the caller, so one icon serves a whole legend. */
 svg {
   fill: var(--hexagon-color);
   stroke: var(--outline-color);
