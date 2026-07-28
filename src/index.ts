@@ -32,6 +32,7 @@ export type {
   Datum,
 } from "./layers/types";
 export { CombinedLayers } from "./layers/combinedLayers";
+export { createLayer } from "./layers/createLayer";
 export { toLegendStyleValues, toStylesMap, findStyleKey } from "./layers/layerStyle";
 
 export { useMapViewStore } from "./stores/mapView";

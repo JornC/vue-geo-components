@@ -67,6 +67,8 @@ export interface WMTSLayerProps extends LayerProps {
   format: string;
   matrixSet: string;
   wrapX: boolean;
+  /* Zoom levels in the tile grid; 14 when left out */
+  resolutionCount?: number;
 }
 
 export interface WFSLayerProps extends LayerProps {
