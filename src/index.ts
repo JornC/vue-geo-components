@@ -3,8 +3,10 @@
 
 export { default as MapView } from "./components/MapView.vue";
 
-// SimpleFoldout, ToggleIcon and VerticalCollapse stay internal: they are the
-// chrome LayerItemTemplate is built from.
+// SimpleFoldout, ToggleIcon and VerticalCollapse stay internal on purpose: they
+// are the chrome LayerItemTemplate is built from, not map components. Keeping
+// them unexported means no product depends on them, so we stay free to change
+// them and this library does not become a catch-all component library.
 export { default as LayerItemTemplate } from "./components/LayerItemTemplate.vue";
 export { default as LayerItemsLegend } from "./components/LayerItemsLegend.vue";
 export type { LegendDisplay, LegendItem } from "./components/legendDisplay";
