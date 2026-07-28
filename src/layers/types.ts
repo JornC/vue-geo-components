@@ -73,9 +73,9 @@ export interface WMTSLayerProps extends LayerProps {
 
 export interface WFSLayerProps extends LayerProps {
   url: string;
-  typeName: string;
   version: string;
   format: string;
+  /* Feature type to request; sent as the typeName parameter */
   layer: string;
   viewparams: () => string;
 }
