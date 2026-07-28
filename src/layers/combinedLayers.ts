@@ -7,7 +7,6 @@ export class CombinedLayers {
   layers: LayerProps[];
   selectedLayer: LayerProps | null;
   layerEnabled: boolean;
-  layerOpacity: number;
 
   /**
    * Constructor
@@ -18,7 +17,6 @@ export class CombinedLayers {
     this.layers = [];
     this.selectedLayer = null;
     this.layerEnabled = layerEnabled;
-    this.layerOpacity = 100;
   }
 
   getSelectedLayer(): LayerProps | null {
@@ -33,8 +31,9 @@ export class CombinedLayers {
     this.layers = layers;
   }
 
+  /** Opacity of the selected layer, 0 to 1, matching OpenLayers. */
   getLayerOpacity(): number {
-    return this.selectedLayer?.layerRef?.getOpacity() ?? 100;
+    return this.selectedLayer?.layerRef?.getOpacity() ?? 1;
   }
 
   setLayerOpacity(opacity: number) {

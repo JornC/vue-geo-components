@@ -6,9 +6,8 @@ TypeScript, OpenLayers 10, proj4, and Pinia.
 The library is built with Vite and ships as ESM. `ol`, `vue`, `proj4`, and `pinia` are
 peer dependencies: the library does not bundle them, it uses the app's own copies.
 
-> Status: starting point. This repo sets up the build, tooling, and CI. The real map code
-> comes in a follow-up. The `MapView` component and `RD` helper here are a small working
-> example.
+> Status: filling up. The layer model and the layer panel UI have moved over from GRIP.
+> The map engine itself still lives there and follows in a later step.
 
 ## Use it in an app
 
@@ -104,12 +103,18 @@ npm run build        # type-check + build dist/
 
 Everything comes from [`src/index.ts`](./src/index.ts):
 
-| Export                                           | What it is                                                                   |
-| ------------------------------------------------ | ---------------------------------------------------------------------------- |
-| `MapView`                                        | The OpenLayers map as a Vue component. Shares the map with child components. |
-| `useMap` / `provideMap` / `mapInjectionKey`      | Get or share the map instance.                                               |
-| `RD` / `registerRdProjection` / `isRdRegistered` | Dutch RD map projection (EPSG:28992).                                        |
-| `useMapViewStore`                                | Shared map state (center, zoom).                                             |
+| Export                                                 | What it is                                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `MapView`                                              | The OpenLayers map as a Vue component. Shares the map with child components.      |
+| `useMap` / `provideMap` / `mapInjectionKey`            | Get or share the map instance.                                                    |
+| `RD` / `registerRdProjection` / `isRdRegistered`       | Dutch RD map projection (EPSG:28992).                                             |
+| `useMapViewStore`                                      | Shared map state (center, zoom).                                                  |
+| `LayerType` / `LayerProps` and its per-type variants   | The layer model: what a layer is, before it becomes an OpenLayers layer.          |
+| `CombinedLayers`                                       | A set of layers of which only one is visible at a time, such as base layers.      |
+| `toStylesMap` / `findStyleKey` / `toLegendStyleValues` | Turn layer style values into OpenLayers styles, or pick the one a value falls in. |
+| `LayerItemTemplate`                                    | A layer panel row: visibility toggle, opacity slider and legend.                  |
+| `LayerItemsLegend`                                     | The legend on its own, for a panel you build yourself.                            |
+| `LegendDisplay` / `LegendItem`                         | What a legend renders. Text is resolved by you, so the library carries no i18n.   |
 
 ## License
 

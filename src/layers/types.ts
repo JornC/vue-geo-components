@@ -27,6 +27,7 @@ export interface LayerProps {
 
   name: string;
   visibility: boolean;
+  /* 0 to 1, matching OpenLayers */
   opacity: number;
 
   /* Only 1 layer of a given group can be visible at the same time. This is useful for example for base layers */

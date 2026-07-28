@@ -8,7 +8,6 @@ export { default as MapView } from "./components/MapView.vue";
 // general-purpose widget set.
 export { default as LayerItemTemplate } from "./components/LayerItemTemplate.vue";
 export { default as LayerItemsLegend } from "./components/LayerItemsLegend.vue";
-export { default as ColorRangesLegend } from "./components/ColorRangesLegend.vue";
 export type { LegendDisplay, LegendItem } from "./components/legendDisplay";
 
 export { useMap, provideMap, mapInjectionKey } from "./composables/useMap";

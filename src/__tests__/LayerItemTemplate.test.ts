@@ -11,12 +11,12 @@ const legend: LegendDisplay = {
 };
 
 describe("LayerItemTemplate", () => {
-  it("emits visible when the toggle is clicked", async () => {
+  it("emits toggle when the visibility icon is clicked", async () => {
     const wrapper = mount(LayerItemTemplate, { props: { enabled: true, opacity: 1 } });
 
     await wrapper.get('[data-id="maplayer-item-show-icon"]').trigger("click");
 
-    expect(wrapper.emitted("visible")).toHaveLength(1);
+    expect(wrapper.emitted("toggle")).toHaveLength(1);
   });
 
   it("emits opacity as a number when the slider moves", async () => {

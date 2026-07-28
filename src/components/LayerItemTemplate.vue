@@ -8,12 +8,14 @@ import ToggleIcon from "./ToggleIcon.vue";
 
 const props = defineProps<{
   enabled: boolean;
+  /** 0 to 1, matching OpenLayers. */
   opacity: number;
   legend?: LegendDisplay;
 }>();
 
 const emit = defineEmits<{
-  visible: [];
+  /** The user asked to flip visibility; the consumer owns the state. */
+  toggle: [];
   opacity: [value: number];
 }>();
 
@@ -27,7 +29,7 @@ const opacityModel = computed({
   <simple-foldout>
     <template #header>
       <slot name="header"></slot>
-      <toggle-icon :enabled="enabled" data-id="maplayer-item-show-icon" @click="emit('visible')" />
+      <toggle-icon :enabled="enabled" data-id="maplayer-item-show-icon" @click="emit('toggle')" />
     </template>
     <div>
       <div class="slider-container">
