@@ -20,6 +20,8 @@ export { LayerType, LegendType, ColorRangeIconType, LegendIconType } from "./lay
 export type {
   GeoInformation,
   LayerProps,
+  LayerBaseProps,
+  EmptyVectorLayerProps,
   WMSLayerProps,
   WMTSLayerProps,
   WFSLayerProps,

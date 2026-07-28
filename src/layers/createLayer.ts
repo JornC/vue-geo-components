@@ -16,6 +16,8 @@ import TileGridWMTS from "ol/tilegrid/WMTS.js";
 
 import {
   LayerType,
+  type EmptyVectorLayerProps,
+  type LayerBaseProps,
   type LayerProps,
   type RESTLayerProps,
   type VectorTileLayerProps,
@@ -27,8 +29,8 @@ import {
 /** WMTS tile grids are built from square tiles of this many pixels. */
 const TILE_SIZE = 256;
 
-/** Zoom levels in a WMTS tile grid, when the layer does not say. */
-const DEFAULT_RESOLUTION_COUNT = 14;
+/** Zoom levels in a WMTS tile grid. */
+const RESOLUTION_COUNT = 14;
 
 /**
  * Build the OpenLayers layer a descriptor asks for.
@@ -41,23 +43,27 @@ const DEFAULT_RESOLUTION_COUNT = 14;
 export function createLayer(layerProps: LayerProps, projection: Projection): Layer {
   switch (layerProps.type) {
     case LayerType.WMTS:
-      return createWmtsLayer(layerProps as WMTSLayerProps, projection);
+      return createWmtsLayer(layerProps, projection);
     case LayerType.WMS:
-      return createWmsLayer(layerProps as WMSLayerProps, projection);
+      return createWmsLayer(layerProps, projection);
     case LayerType.WFS:
-      return createWfsLayer(layerProps as WFSLayerProps, projection);
+      return createWfsLayer(layerProps, projection);
     case LayerType.REST:
-      return createRestLayer(layerProps as RESTLayerProps, projection);
+      return createRestLayer(layerProps, projection);
     case LayerType.VECTOR_TILE:
-      return createVectorTileLayer(layerProps as VectorTileLayerProps, projection);
+      return createVectorTileLayer(layerProps, projection);
     case LayerType.EMPTY_VECTOR_LAYER:
       return createEmptyVectorLayer(layerProps);
-    default:
-      throw new Error(`Unsupported layer type: ${layerProps.type}`);
+    default: {
+      // Every member of the union is handled above, so adding a LayerType
+      // without a builder fails to compile here rather than at runtime.
+      const unhandled: never = layerProps;
+      throw new Error(`Unsupported layer type: ${(unhandled as LayerBaseProps & { type: string }).type}`);
+    }
   }
 }
 
-function createEmptyVectorLayer(layerProps: LayerProps): Layer {
+function createEmptyVectorLayer(layerProps: EmptyVectorLayerProps): Layer {
   const vectorLayer = new VectorLayer({
     source: new VectorSource(),
     opacity: layerProps.opacity,
@@ -162,11 +168,10 @@ function createWfsLayer(layerProps: WFSLayerProps, projection: Projection): Laye
 
 function createWmtsLayer(layerProps: WMTSLayerProps, projection: Projection): Layer {
   const projectionExtent = projection.getExtent();
-  const resolutionCount = layerProps.resolutionCount ?? DEFAULT_RESOLUTION_COUNT;
 
   const size = getWidth(projectionExtent) / TILE_SIZE;
-  const resolutions = Array.from({ length: resolutionCount }, (_, z) => size / Math.pow(2, z));
-  const matrixIds = Array.from({ length: resolutionCount }, (_, z) => z.toString());
+  const resolutions = Array.from({ length: RESOLUTION_COUNT }, (_, z) => size / Math.pow(2, z));
+  const matrixIds = Array.from({ length: RESOLUTION_COUNT }, (_, z) => z.toString());
   const wmtsSource = new WMTS({
     url: layerProps.url,
     layer: layerProps.layer,

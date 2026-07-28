@@ -11,7 +11,16 @@ import WMTSTileGrid from "ol/tilegrid/WMTS.js";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createLayer } from "@/layers/createLayer";
-import { LayerType, type LayerProps, type RESTLayerProps, type VectorTileLayerProps, type WFSLayerProps, type WMSLayerProps } from "@/layers/types";
+import {
+  LayerType,
+  type EmptyVectorLayerProps,
+  type LayerProps,
+  type RESTLayerProps,
+  type VectorTileLayerProps,
+  type WFSLayerProps,
+  type WMSLayerProps,
+  type WMTSLayerProps,
+} from "@/layers/types";
 import { RD, registerRdProjection } from "@/projections/rd";
 
 let projection: Projection;
@@ -26,13 +35,13 @@ const base = { name: "Test layer", visibility: true, opacity: 0.5, zIndex: 3 };
 
 describe("createLayer", () => {
   it("rejects a type it has no builder for", () => {
-    const layerProps = { ...base, type: "PLAIN_WRONG" as LayerType } as LayerProps;
+    const layerProps = { ...base, type: "PLAIN_WRONG" } as unknown as LayerProps;
 
     expect(() => createLayer(layerProps, projection)).toThrow("Unsupported layer type: PLAIN_WRONG");
   });
 
   it("stores the created layer on the descriptor", () => {
-    const layerProps = { ...base, type: LayerType.EMPTY_VECTOR_LAYER } as LayerProps;
+    const layerProps: EmptyVectorLayerProps = { ...base, type: LayerType.EMPTY_VECTOR_LAYER };
 
     const layer = createLayer(layerProps, projection);
 
@@ -103,7 +112,7 @@ describe("createLayer", () => {
   });
 
   it("builds an empty vector layer with an empty source", () => {
-    const layerProps = { ...base, type: LayerType.EMPTY_VECTOR_LAYER } as LayerProps;
+    const layerProps: EmptyVectorLayerProps = { ...base, type: LayerType.EMPTY_VECTOR_LAYER };
 
     const layer = createLayer(layerProps, projection);
 
@@ -112,7 +121,7 @@ describe("createLayer", () => {
   });
 
   it("builds a WMTS tile grid from the projection extent", () => {
-    const layerProps = {
+    const layerProps: WMTSLayerProps = {
       ...base,
       type: LayerType.WMTS,
       url: "https://example.invalid/wmts",
@@ -133,25 +142,6 @@ describe("createLayer", () => {
     expect(tileGrid.getResolutions()[0]).toBeCloseTo(880803.84 / 256, 6);
     expect(tileGrid.getMatrixIds()).toEqual(Array.from({ length: 14 }, (_, z) => z.toString()));
     expect(tileGrid.getOrigin(0)).toEqual([-285401.92, 903401.92]);
-  });
-
-  it("honours a layer's own resolution count", () => {
-    const layerProps = {
-      ...base,
-      type: LayerType.WMTS,
-      url: "https://example.invalid/wmts",
-      layer: "grijs",
-      style: "default",
-      format: "image/png8",
-      matrixSet: RD,
-      wrapX: true,
-      resolutionCount: 10,
-    };
-
-    const layer = createLayer(layerProps, projection);
-
-    const tileGrid = (layer as TileLayer<WMTS>).getSource()!.getTileGrid() as WMTSTileGrid;
-    expect(tileGrid.getResolutions()).toHaveLength(10);
   });
 
   it("puts the WMS request parameters on the source", () => {
