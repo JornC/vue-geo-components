@@ -111,6 +111,7 @@ Everything comes from [`src/index.ts`](./src/index.ts):
 | `useMapViewStore`                                      | Shared map state (center, zoom).                                                  |
 | `LayerType` / `LayerProps` and its per-type variants   | The layer model: what a layer is, before it becomes an OpenLayers layer.          |
 | `CombinedLayers`                                       | A set of layers of which only one is visible at a time, such as base layers.      |
+| `createLayer`                                          | Build the OpenLayers layer a descriptor asks for.                                 |
 | `toStylesMap` / `findStyleKey` / `toLegendStyleValues` | Turn layer style values into OpenLayers styles, or pick the one a value falls in. |
 | `LayerItemTemplate`                                    | A layer panel row: visibility toggle, opacity slider and legend.                  |
 | `LayerItemsLegend`                                     | The legend on its own, for a panel you build yourself.                            |
