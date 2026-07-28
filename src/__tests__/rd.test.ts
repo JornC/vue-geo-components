@@ -1,4 +1,4 @@
-import { get as getProjection } from "ol/proj";
+import { get as getProjection } from "ol/proj.js";
 import { describe, expect, it } from "vitest";
 
 import { RD, isRdRegistered, registerRdProjection } from "@/projections/rd";

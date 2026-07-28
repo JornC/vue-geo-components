@@ -1,5 +1,5 @@
-import { get as getProjection } from "ol/proj";
-import { register } from "ol/proj/proj4";
+import { get as getProjection } from "ol/proj.js";
+import { register } from "ol/proj/proj4.js";
 import proj4 from "proj4";
 
 /** Amersfoort / RD New - the Dutch national projection used across AERIUS. */

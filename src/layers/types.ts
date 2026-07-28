@@ -1,7 +1,7 @@
-import type { FeatureLike } from "ol/Feature";
-import type Layer from "ol/layer/Layer";
-import type { Projection } from "ol/proj";
-import type WMTSTileGrid from "ol/tilegrid/WMTS";
+import type { FeatureLike } from "ol/Feature.js";
+import type Layer from "ol/layer/Layer.js";
+import type { Projection } from "ol/proj.js";
+import type WMTSTileGrid from "ol/tilegrid/WMTS.js";
 
 export type GeoInformation = {
   epsgCode: string;

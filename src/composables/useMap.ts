@@ -1,4 +1,4 @@
-import type Map from "ol/Map";
+import type Map from "ol/Map.js";
 import { type InjectionKey, type ShallowRef, inject, provide } from "vue";
 
 /**

@@ -1,4 +1,4 @@
-import { Fill, Stroke, Style } from "ol/style";
+import { Fill, Stroke, Style } from "ol/style.js";
 
 import type { LayerStyleType } from "./types";
 

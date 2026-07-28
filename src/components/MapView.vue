@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import Map from "ol/Map";
-import View from "ol/View";
+import Map from "ol/Map.js";
+import View from "ol/View.js";
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from "vue";
 
 import { provideMap } from "../composables/useMap";
