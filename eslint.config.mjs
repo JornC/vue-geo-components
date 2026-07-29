@@ -28,6 +28,31 @@ export default defineConfigWithVueTs(
   },
 
   {
+    // ol is ESM with no exports map, so Node resolves a subpath as a literal
+    // file path. Bundlers guess the extension, Node does not, and what we
+    // publish has to resolve for consumers running outside a bundler.
+    // See https://github.com/openlayers/openlayers/issues/13114
+    name: "geo/ol-import-extensions",
+    files: ["**/*.{js,mjs,ts,vue}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              // Any ol subpath not ending in .js. A group glob cannot express
+              // this: gitignore semantics refuse to re-include a path whose
+              // parent the group already matched.
+              regex: "^ol/(?!.*\\.js$)",
+              message: "Import ol subpaths with their .js extension (ol/Map.js), or Node cannot resolve them.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
     name: "geo/layer-model",
     files: ["src/layers/types.ts"],
     rules: {
