@@ -3,7 +3,6 @@ import { isProjectionRegistered, registerProjection } from "./registerProjection
 /** Amersfoort / RD New - the Dutch national projection used across AERIUS. */
 export const RD = "EPSG:28992";
 
-/** Proj4 definition string for {@link RD}. */
 export const RD_PROJ4_DEFINITION =
   "+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 " +
   "+k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel " +

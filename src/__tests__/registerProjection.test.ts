@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import { isProjectionRegistered, registerProjection } from "@/projections/registerProjection";
 
-// A projection distinct from RD (EPSG:28992), so this suite can't interact with
-// rd.test.ts's / createLayer.test.ts's shared module-level registration state.
+// Not RD (EPSG:28992): the registry is module-level, so sharing a code with rd.test.ts would leave
+// whichever suite ran second seeing an already-registered projection.
 const LAEA_EUROPE = {
   epsgCode: "EPSG:3035",
   extent: [1896628.62, 1507846.05, 7104179.2, 5416756.29],
