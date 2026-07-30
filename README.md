@@ -103,20 +103,22 @@ npm run build        # type-check + build dist/
 
 Everything comes from [`src/index.ts`](./src/index.ts):
 
-| Export                                                                                 | What it is                                                                        |
-| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `MapView`                                                                              | The OpenLayers map as a Vue component. Shares the map with child components.      |
-| `useMap` / `provideMap` / `mapInjectionKey`                                            | Get or share the map instance.                                                    |
-| `registerProjection` / `isProjectionRegistered`                                        | Register any projection (proj4 def + extent) with OpenLayers, keyed by EPSG code. |
-| `RD` / `RD_EXTENT` / `RD_PROJ4_DEFINITION` / `registerRdProjection` / `isRdRegistered` | Dutch RD map projection (EPSG:28992), built on `registerProjection`.              |
-| `useMapViewStore`                                                                      | Shared map state (center, zoom).                                                  |
-| `LayerType` / `LayerProps` and its per-type variants                                   | The layer model: what a layer is, before it becomes an OpenLayers layer.          |
-| `CombinedLayers`                                                                       | A set of layers of which only one is visible at a time, such as base layers.      |
-| `createLayer`                                                                          | Build the OpenLayers layer a descriptor asks for.                                 |
-| `toStylesMap` / `findStyleKey` / `toLegendStyleValues`                                 | Turn layer style values into OpenLayers styles, or pick the one a value falls in. |
-| `LayerItemTemplate`                                                                    | A layer panel row: visibility toggle, opacity slider and legend.                  |
-| `LayerItemsLegend`                                                                     | The legend on its own, for a panel you build yourself.                            |
-| `LegendDisplay` / `LegendItem`                                                         | What a legend renders. Text is resolved by you, so the library carries no i18n.   |
+<!-- Cells are left unpadded on purpose: padded cells mean one long export reflows every row. -->
+<!-- prettier-ignore -->
+| Export | What it is |
+| --- | --- |
+| `MapView` | The OpenLayers map as a Vue component. Shares the map with child components. |
+| `useMap` / `provideMap` / `mapInjectionKey` | Get or share the map instance. |
+| `registerProjection` / `isProjectionRegistered` | Register any projection (proj4 def + extent) with OpenLayers, keyed by EPSG code. |
+| `RD` / `RD_EXTENT` / `RD_PROJ4_DEFINITION` / `registerRdProjection` / `isRdRegistered` | Dutch RD map projection (EPSG:28992), built on `registerProjection`. |
+| `useMapViewStore` | Shared map state (center, zoom). |
+| `LayerType` / `LayerProps` and its per-type variants | The layer model: what a layer is, before it becomes an OpenLayers layer. |
+| `CombinedLayers` | A set of layers of which only one is visible at a time, such as base layers. |
+| `createLayer` | Build the OpenLayers layer a descriptor asks for. |
+| `toStylesMap` / `findStyleKey` / `toLegendStyleValues` | Turn layer style values into OpenLayers styles, or pick the one a value falls in. |
+| `LayerItemTemplate` | A layer panel row: visibility toggle, opacity slider and legend. |
+| `LayerItemsLegend` | The legend on its own, for a panel you build yourself. |
+| `LegendDisplay` / `LegendItem` | What a legend renders. Text is resolved by you, so the library carries no i18n. |
 
 ## License
 
