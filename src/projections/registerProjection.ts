@@ -19,8 +19,8 @@ export function registerProjection(geo: ProjectionInfo): void {
   proj4.defs(geo.epsgCode, geo.projection);
   register(proj4);
   // The extent is needed for tile-grid resolutions and for reprojecting raster sources into this
-  // projection. Copied because setExtent stores the array by reference, and callers pass a shared
-  // constant (RD_EXTENT), which OpenLayers would then be able to mutate out from under them.
+  // projection. Copied because setExtent stores the array by reference, and callers likely pass a
+  // shared constant, which OpenLayers would then be able to mutate out from under them.
   getProjection(geo.epsgCode)?.setExtent([...geo.extent]);
   registeredEpsgCodes.add(geo.epsgCode);
 }
