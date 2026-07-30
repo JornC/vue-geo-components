@@ -41,3 +41,62 @@ export { createLayer } from "./layers/createLayer";
 export { toLegendStyleValues, toStylesMap, findStyleKey } from "./layers/layerStyle";
 
 export { useMapViewStore } from "./stores/mapView";
+
+// The AERIUS receptor grid: a fixed hexagonal lattice anchored to RD, in which
+// every hexagon has a stable id. Shared so no two products can disagree about
+// where a given receptor is.
+export {
+  centerFromHexagon,
+  centerPointOnReceptor,
+  centerPointOnReceptorAtZoom,
+  createHexagonFeature,
+  isReceptorAtZoomLevel,
+  pointFromReceptorId,
+  receptorIdFromPoint,
+} from "./receptors/hexagonGrid";
+export type { HexagonOffsets } from "./receptors/hexagonGrid";
+export { createSelectedReceptorLayer, createReceptorLabelStyle, renderSelectedReceptor, selectedReceptorStyle } from "./receptors/selectedReceptor";
+
+// Dutch public map services.
+export {
+  BASE_LAYER_GROUP,
+  PdokBackgroundVariant,
+  createPdokAerialLayer,
+  createPdokBackgroundLayer,
+  createPdokProvinceBoundaryLayer,
+} from "./layers/pdok";
+
+// Natura 2000 sites as map points. Fetching them stays with the product.
+export {
+  NATURE_AREA_AUTHORITY,
+  NATURE_AREA_EXTENT,
+  NATURE_AREA_NAME,
+  natureAreaExtent,
+  natureAreaPointStyle,
+  natureAreasToFeatures,
+} from "./layers/natureAreas";
+export type { NatureArea } from "./layers/natureAreas";
+
+// Layer plumbing.
+export { getMatrixLimitsForLayer } from "./layers/wmtsCapabilities";
+export type { WmtsCapabilitiesJson } from "./layers/wmtsCapabilities";
+export { createHandleFeatureClicked } from "./layers/featureInteraction";
+export { scaleDenominatorToResolution } from "./layers/resolution";
+
+// Smooth camera movement.
+export { createMapFlyTo } from "./map/flyTo";
+export type { FlyController, FlyOptions, FlyTarget } from "./map/flyTo";
+export { zoomToExtent } from "./map/zoomToExtent";
+
+// AERIUS colour scales, as data. Style functions and translations stay with the
+// product; these are only the classes and colours it must not diverge on.
+export {
+  depositionBreakdownScale,
+  depositionDeltaScale,
+  depositionOtherScale,
+  depositionTotalScale,
+  kdwSensitivityFillColors,
+  kdwSensitivityScale,
+  natura2000DirectiveScale,
+  nitrogenLoadScale,
+} from "./styles/aeriusScales";

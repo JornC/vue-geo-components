@@ -123,6 +123,28 @@ Everything comes from [`src/index.ts`](./src/index.ts):
 - **`LayerItemsLegend`** - The legend on its own, for a panel you build yourself.
 - **`LegendDisplay` / `LegendItem`** - What a legend renders. Text is resolved by you, so
   the library carries no i18n.
+- **`createHexagonFeature` / `pointFromReceptorId` / `receptorIdFromPoint` /
+  `centerFromHexagon` / `isReceptorAtZoomLevel` / `centerPointOnReceptor` /
+  `centerPointOnReceptorAtZoom`** - The AERIUS receptor grid: the RD-anchored hexagon
+  lattice and its stable ids.
+- **`createSelectedReceptorLayer` / `renderSelectedReceptor` / `selectedReceptorStyle` /
+  `createReceptorLabelStyle`** - Drawing the receptor a user picked, with crosshairs out
+  to the map edges.
+- **`createPdokBackgroundLayer` / `createPdokAerialLayer` /
+  `createPdokProvinceBoundaryLayer` / `PdokBackgroundVariant`** - Descriptors for the
+  public Dutch map services. Vector styling stays with you.
+- **`natureAreasToFeatures` / `natureAreaPointStyle` / `natureAreaExtent` / `NatureArea`** -
+  Natura 2000 sites as map points. You fetch and cache them; this shapes them.
+- **`getMatrixLimitsForLayer` / `WmtsCapabilitiesJson`** - The tile-matrix limits a
+  vector-tile layer needs, from a WMTS GetCapabilities.
+- **`createHandleFeatureClicked`** - Pick the feature you meant out of everything under
+  the cursor.
+- **`createMapFlyTo` / `zoomToExtent`** - Smooth pan-and-zoom along a van Wijk path, and
+  fitting an extent with it.
+- **`depositionTotalScale` and the other AERIUS scales** - Colour scales and class bounds,
+  as data. Style functions and text stay with you.
+- **`scaleDenominatorToResolution`** - Turn a cartographic scale (1:800000) into an
+  OpenLayers resolution.
 
 ## License
 
