@@ -107,7 +107,8 @@ Everything comes from [`src/index.ts`](./src/index.ts):
 | ------------------------------------------------------ | --------------------------------------------------------------------------------- |
 | `MapView`                                              | The OpenLayers map as a Vue component. Shares the map with child components.      |
 | `useMap` / `provideMap` / `mapInjectionKey`            | Get or share the map instance.                                                    |
-| `RD` / `registerRdProjection` / `isRdRegistered`       | Dutch RD map projection (EPSG:28992).                                             |
+| `registerProjection` / `isProjectionRegistered`        | Register any projection (proj4 def + extent) with OpenLayers, keyed by EPSG code. |
+| `RD` / `RD_EXTENT` / `RD_PROJ4_DEFINITION` / `registerRdProjection` / `isRdRegistered` | Dutch RD map projection (EPSG:28992), built on `registerProjection`. |
 | `useMapViewStore`                                      | Shared map state (center, zoom).                                                  |
 | `LayerType` / `LayerProps` and its per-type variants   | The layer model: what a layer is, before it becomes an OpenLayers layer.          |
 | `CombinedLayers`                                       | A set of layers of which only one is visible at a time, such as base layers.      |
