@@ -48,7 +48,9 @@ export interface LayerBaseProps {
   onUnHover?: () => void;
   onClick?: (feature: FeatureLike) => void;
 
-  styleFunction?: (feature: FeatureLike, resolution?: number) => any;
+  // Matches OpenLayers' own StyleFunction: it always passes the resolution, so
+  // a style is free to depend on it without guarding.
+  styleFunction?: (feature: FeatureLike, resolution: number) => any;
 
   minZoom?: number;
   maxZoom?: number;
