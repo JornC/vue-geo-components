@@ -87,16 +87,3 @@ export { scaleDenominatorToResolution } from "./layers/resolution";
 export { createMapFlyTo } from "./map/flyTo";
 export type { FlyController, FlyOptions, FlyTarget } from "./map/flyTo";
 export { zoomToExtent } from "./map/zoomToExtent";
-
-// AERIUS colour scales, as data. Style functions and translations stay with the
-// product; these are only the classes and colours it must not diverge on.
-export {
-  depositionBreakdownScale,
-  depositionDeltaScale,
-  depositionOtherScale,
-  depositionTotalScale,
-  kdwSensitivityFillColors,
-  kdwSensitivityScale,
-  natura2000DirectiveScale,
-  nitrogenLoadScale,
-} from "./styles/aeriusScales";
