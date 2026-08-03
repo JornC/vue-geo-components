@@ -11,10 +11,14 @@ import Text from "ol/style/Text.js";
 /**
  * Natura 2000 sites shown as points on the map.
  *
- * A site is drawn at its centroid and, when picked, the map flies to the site's
- * full extent - so each feature carries both. Fetching and caching the sites
- * stays with the product: every AERIUS product reaches a different service for
- * them, and they differ in when the data goes stale.
+ * A site is drawn at its centroid, and picking one flies the map to the site's
+ * bounding box. So a feature here carries a point and four numbers - never the
+ * site's actual boundary. Nothing in this module can outline a site; a product
+ * that needs outlines has to fetch the polygons and render them itself.
+ *
+ * Fetching and caching stays with the product as well: every AERIUS product
+ * reaches a different service for these, and they differ in when the data goes
+ * stale.
  */
 
 /** Font for the hover label; Georama is the AERIUS typeface. */
@@ -33,7 +37,9 @@ export const NATURE_AREA_AUTHORITY = "authority";
 /**
  * A Natura 2000 site, in the shape this module needs it.
  *
- * Both geometries are WKT, which is how AERIUS services publish them.
+ * Both geometries are WKT, which is how AERIUS services publish them. Only the
+ * centroid survives as a geometry - the other is reduced to its bounding box on
+ * the way in and the shape itself is dropped.
  */
 export type NatureArea = {
   id: string;
@@ -41,7 +47,7 @@ export type NatureArea = {
   authority?: string;
   /** Point the site is drawn at. */
   centroidWkt: string;
-  /** Bounding geometry the map fits when the site is picked. */
+  /** Any geometry covering the site; only its bounding box is kept. */
   extentWkt: string;
 };
 
