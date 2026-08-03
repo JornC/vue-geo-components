@@ -95,5 +95,7 @@ function zoomForExtent(view: View, corners: Corners, size: { width: number; heig
     return Math.min(startZoom + 2, MAX_ZOOM);
   }
 
-  return Math.max(Math.min(view.getZoomForResolution(resolution) || MAX_ZOOM, MAX_ZOOM), MIN_ZOOM);
+  // ?? rather than ||: zoom 0 is a real zoom, and || would turn the widest
+  // possible view into the narrowest one.
+  return Math.max(Math.min(view.getZoomForResolution(resolution) ?? MAX_ZOOM, MAX_ZOOM), MIN_ZOOM);
 }
