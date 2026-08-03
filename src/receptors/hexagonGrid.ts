@@ -93,7 +93,7 @@ function nearestCenterAtZoom(x: number, y: number, level: number): [number, numb
   for (let offset = -1; offset <= 1; offset++) {
     const row = nearestRow + offset;
     // Rows below the origin make the remainder negative, so normalise it.
-    const shift = (((row % 2) + 2) % 2) !== 0 ? oneAndHalfRadius : 0;
+    const shift = ((row % 2) + 2) % 2 !== 0 ? oneAndHalfRadius : 0;
     const column = Math.round((x - MIN_X - shift) / tripleRadius);
     const cx = MIN_X + column * tripleRadius + shift;
     const cy = MIN_Y + row * halfHeight;
