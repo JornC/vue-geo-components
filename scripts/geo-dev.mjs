@@ -129,6 +129,7 @@ function runCapture(cmd, args, cwd) {
  * normal, and a file that vanished under us is not an error worth aborting for.
  */
 async function stageFiles(checkout, dest, files) {
+  const missing = [];
   let copied = 0;
   for (const rel of files) {
     const from = path.join(checkout, rel);
@@ -141,9 +142,10 @@ async function stageFiles(checkout, dest, files) {
       if (err.code !== "ENOENT") {
         throw err;
       }
+      missing.push(rel);
     }
   }
-  return copied;
+  return { copied, missing };
 }
 
 /**
@@ -378,7 +380,24 @@ async function link(checkout, consumer, { quiet = false } = {}) {
   fs.rmSync(path.join(root, `.staging-${process.pid}`), { recursive: true, force: true });
   fs.mkdirSync(staging, { recursive: true });
 
-  const copied = await stageFiles(checkout, staging, files);
+  // A file in the pack list that is not on disk means the build has not finished
+  // writing it - vite-plugin-dts emits declarations in its own closeBundle, so a
+  // mirror can arrive first. Copying what happens to be there would stage a
+  // package missing declarations, and nothing downstream would say so.
+  let { copied, missing } = await stageFiles(checkout, staging, files);
+  for (let attempt = 0; attempt < 10 && missing.length; attempt++) {
+    await new Promise((done) => setTimeout(done, 150));
+    const retry = await stageFiles(checkout, staging, missing);
+    copied += retry.copied;
+    missing = retry.missing;
+  }
+  if (missing.length) {
+    fail(
+      `the build has not produced ${missing.length} of its ${files.length} files: ${missing.slice(0, 4).join(", ")}${missing.length > 4 ? ", ..." : ""}\n` +
+        "  Refusing to stage an incomplete package. Build the library and try again.",
+    );
+  }
+
   await assertStageInvariants(staging);
 
   fs.mkdirSync(path.dirname(stage), { recursive: true });
@@ -492,27 +511,20 @@ async function watch(checkout, consumers) {
     return;
   }
 
-  const typeCheck = spawn("npx", ["vue-tsc", "--build", "--watch"], {
-    cwd: checkout,
-    stdio: ["ignore", "pipe", "pipe"],
-    shell: process.platform === "win32",
-  });
-  for (const stream of [typeCheck.stdout, typeCheck.stderr]) {
-    stream.on("data", (d) =>
-      String(d)
-        .split("\n")
-        .filter(Boolean)
-        .forEach((line) => console.warn(`[types] ${line}`)),
-    );
-  }
-  typeCheck.on("exit", (code) => log(`type-check watcher exited (${code}); types are no longer being checked`));
-
+  // Deliberately no second type-checker alongside this. vue-tsc --build and
+  // vite-plugin-dts are both incremental TypeScript builds over the same
+  // sources, and running them together makes the dts plugin skip declarations it
+  // believes are already current: dist silently drops from 33 files to 23, and
+  // the incomplete build is what gets staged. The plugin reports type errors on
+  // its own, which is the reporting the extra watcher was there to provide.
   log(`watching ${checkout}`);
   await build({
     root: checkout,
     configFile: path.join(checkout, "vite.config.ts"),
     build: { watch: {} },
-    plugins: [{ name: "aerius-geo-stage-mirror", closeBundle: mirror }],
+    // order: "post" so this runs after vite-plugin-dts has emitted its
+    // declarations, rather than racing it for a half-written dist.
+    plugins: [{ name: "aerius-geo-stage-mirror", closeBundle: { order: "post", handler: mirror } }],
   });
 }
 
