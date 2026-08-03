@@ -28,12 +28,13 @@ import fsp from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 /** Bumped when the contract with the consumer shell scripts changes. */
 export const geoDevProtocol = 1;
 
 const PACKAGE_NAME = "@aerius/vue-geo-components";
+const PUBLISHED_TAG = "dev";
 const STAGE_ROOT = ".geo-lib";
 const LOCK_FILE = ".geo-dev.lock";
 const LINKS_FILE = ".geo-links.json";
@@ -48,12 +49,17 @@ function fail(msg) {
   process.exit(1);
 }
 
+// The command is the first bare word, wherever it falls: consumers append
+// --consumer after forwarding their own arguments, so a bare invocation is
+// "--consumer <dir>" with no command at all.
 function parseArgs(argv) {
-  const args = { command: argv[0] };
-  for (let i = 1; i < argv.length; i++) {
+  const args = {};
+  for (let i = 0; i < argv.length; i++) {
     const [flag, inline] = argv[i].split("=");
     if (flag === "--consumer" || flag === "--checkout") {
       args[flag.slice(2)] = inline ?? argv[++i];
+    } else if (!args.command && !flag.startsWith("-")) {
+      args.command = flag;
     }
   }
   return args;
@@ -202,6 +208,148 @@ function auditPeers(checkoutPkg, checkout, consumer) {
       log(`peer ${name}: checkout builds against ${a}, this app runs ${b}`);
     }
   }
+}
+
+/**
+ * A working checkout, as opposed to an installed copy of ourselves. The
+ * published package carries these scripts too, so "has our package.json" is not
+ * enough to tell the two apart - only a checkout has the sources.
+ */
+function isCheckout(dir) {
+  try {
+    return readJson(path.join(dir, "package.json")).name === PACKAGE_NAME && fs.existsSync(path.join(dir, "src"));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Find a checkout to stage from, searching outward from the app. Only `link`
+ * and `watch` need one; everything else works from the installed package, so a
+ * developer who never cloned the library is never asked for a path.
+ */
+function findCheckout(consumer, override) {
+  if (override) {
+    return path.resolve(override);
+  }
+  if (process.env.VUE_GEO_COMPONENTS_DIR) {
+    return path.resolve(process.env.VUE_GEO_COMPONENTS_DIR);
+  }
+  if (isCheckout(defaultCheckout)) {
+    return defaultCheckout;
+  }
+  // Walk up to the app's repository, then look beside it. Depth varies: a plain
+  // clone and a bare repository with one worktree per branch sit differently.
+  let dir = consumer;
+  const roots = [];
+  for (let i = 0; i < 8 && dir !== path.dirname(dir); i++) {
+    if (fs.existsSync(path.join(dir, ".git"))) {
+      roots.push(dir, path.dirname(dir));
+    }
+    dir = path.dirname(dir);
+  }
+  for (const root of roots) {
+    const candidate = path.join(path.dirname(root), "vue-geo-components");
+    if (isCheckout(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+function requireCheckout(consumer, override) {
+  const found = findCheckout(consumer, override);
+  if (!found) {
+    fail(
+      "no vue-geo-components checkout found beside this repository.\n" + "  Clone it next to your other repositories, or set VUE_GEO_COMPONENTS_DIR.",
+    );
+  }
+  if (!isCheckout(found)) {
+    fail(`${found} is not a vue-geo-components checkout`);
+  }
+  return found;
+}
+
+/** The version the app's lockfile pins, which is what `npm ci` would install. */
+function pinnedVersion(consumer) {
+  try {
+    const lock = readJson(path.join(consumer, "package-lock.json"));
+    return lock.packages?.[`node_modules/${PACKAGE_NAME}`]?.version;
+  } catch {
+    return undefined;
+  }
+}
+
+function npmInstall(consumer, spec) {
+  // --no-save keeps the tag in package.json and leaves the lockfile alone; only
+  // node_modules changes, so linking never shows up in git status.
+  const res = spawnSync("npm", ["install", spec, "--no-save"], {
+    cwd: consumer,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
+  if (res.status !== 0) {
+    fail(`npm install ${spec} failed`);
+  }
+}
+
+/**
+ * Back to the published package. Deliberately needs no checkout: the way out of
+ * local mode must not depend on the checkout you are leaving.
+ */
+function unlink(consumer) {
+  const { root, entry } = stagePaths(consumer);
+  fs.rmSync(entry, { recursive: true, force: true });
+  fs.rmSync(root, { recursive: true, force: true });
+
+  const pinned = pinnedVersion(consumer);
+  if (pinned) {
+    log(`installing the pinned published version (${pinned})`);
+    npmInstall(consumer, `${PACKAGE_NAME}@${pinned}`);
+  } else {
+    log(`the lockfile pins no ${PACKAGE_NAME}; installing the ${PUBLISHED_TAG} tag`);
+    npmInstall(consumer, `${PACKAGE_NAME}@${PUBLISHED_TAG}`);
+  }
+  log("published: installed");
+}
+
+/**
+ * Move to the newest published snapshot. Resolve the tag to a version first:
+ * installing the tag itself reconciles against the lockfile and reports success
+ * without moving.
+ */
+function update(consumer) {
+  const out = spawnSync("npm", ["view", `${PACKAGE_NAME}@${PUBLISHED_TAG}`, "version"], {
+    cwd: consumer,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
+  const latest = out.stdout?.trim();
+  if (out.status !== 0 || !latest) {
+    fail(`could not resolve ${PACKAGE_NAME}@${PUBLISHED_TAG} from Nexus`);
+  }
+  const { root, entry } = stagePaths(consumer);
+  fs.rmSync(entry, { recursive: true, force: true });
+  fs.rmSync(root, { recursive: true, force: true });
+  log(`installing the newest published snapshot (${latest})`);
+  npmInstall(consumer, `${PACKAGE_NAME}@${latest}`);
+  log("this changed node_modules only; install it without --no-save and commit the lockfile to move everyone");
+}
+
+function installedVersion(consumer) {
+  try {
+    return readJson(path.join(consumer, "node_modules", ...PACKAGE_NAME.split("/"), "package.json")).version;
+  } catch {
+    return undefined;
+  }
+}
+
+function currentMode(consumer) {
+  const { state, entry } = stagePaths(consumer);
+  if (fs.existsSync(state)) {
+    return "local";
+  }
+  return fs.existsSync(entry) ? "published" : "none";
 }
 
 function linkEntry(stage, entry) {
@@ -396,35 +544,185 @@ function status(consumer) {
   console.log(`  watcher: ${lockIsLive(saved.checkout) ? "running" : "NOT running - edits will not reach this app"}`);
 }
 
-// Only act when run as a command. Consumers import this file to read
-// geoDevProtocol before delegating to it, and the tests import its helpers.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+/**
+ * The dev-stack pane. Shows how the app currently resolves the library, drives
+ * the rebuild loop in local mode, and switches modes on a keypress.
+ *
+ * It lives here rather than in each consumer because it was identical in both,
+ * and it runs from the installed package, so it works before anyone has cloned
+ * this repository.
+ */
+async function pane(consumer, checkoutOverride) {
+  const { entry } = stagePaths(consumer);
+  let child;
+
+  const stopChild = () => {
+    if (child) {
+      child.kill();
+      child = undefined;
+    }
+  };
+  process.on("exit", stopChild);
+
+  const render = () => {
+    const mode = currentMode(consumer);
+    console.log("==================================================");
+    if (mode === "local") {
+      const saved = readJson(stagePaths(consumer).state);
+      console.log(`Geo lib: LOCAL   ${saved.checkout}`);
+      console.log(`Staged as ${saved.version}. Rebuilding and re-staging on change.`);
+      // npm owns node_modules, so a plain npm install silently replaces the link.
+      if (!fs.existsSync(entry) || !fs.lstatSync(entry).isSymbolicLink()) {
+        console.log("!! node_modules no longer points at the stage - something reinstalled it.");
+        console.log("!! Re-staging now; your edits were not reaching the app.");
+      }
+      console.log("  [S] switch to published   [Q] quit");
+    } else if (mode === "published") {
+      console.log(`Geo lib: PUBLISHED   ${installedVersion(consumer) ?? "unknown"}`);
+      console.log("  [U] move to the newest snapshot   [S] stage a local checkout   [Q] quit");
+    } else {
+      console.log("Geo lib: NOT INSTALLED");
+      console.log("  [S] stage a local checkout   [Q] quit");
+    }
+    console.log("==================================================");
+    return mode;
+  };
+
+  const startWatch = (checkout) => {
+    stopChild();
+    child = spawn(process.execPath, [fileURLToPath(import.meta.url), "watch", "--consumer", consumer, "--checkout", checkout], {
+      stdio: "inherit",
+    });
+    child.on("exit", (code) => {
+      if (child) {
+        console.log(`!! the rebuild loop exited (${code}). Edits are no longer reaching the app.`);
+      }
+    });
+  };
+
+  const refresh = () => {
+    const mode = render();
+    if (mode === "local") {
+      startWatch(readJson(stagePaths(consumer).state).checkout);
+    }
+    return mode;
+  };
+
+  let mode = refresh();
+
+  // Detached or piped: there are no keys to read, so just stay up.
+  if (!process.stdin.isTTY) {
+    await new Promise(() => {});
+    return;
+  }
+
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.setEncoding("utf8");
+
+  const act = async (fn) => {
+    stopChild();
+    console.log("");
+    try {
+      await fn();
+    } catch (err) {
+      console.error(`[geo-dev] ${err.message}`);
+    }
+    mode = refresh();
+  };
+
+  process.stdin.on("data", (key) => {
+    if (key === "\u0003" || key === "q" || key === "Q") {
+      stopChild();
+      process.exit(0);
+    }
+    if (key === "s" || key === "S") {
+      void act(async () => {
+        if (mode === "local") {
+          unlink(consumer);
+        } else {
+          await link(requireCheckout(consumer, checkoutOverride), consumer);
+        }
+      });
+    }
+    if ((key === "u" || key === "U") && mode === "published") {
+      void act(async () => update(consumer));
+    }
+  });
+
+  await new Promise(() => {});
+}
+
+/**
+ * Only act when run as a command; importing this file must have no effect, so
+ * the tests can reach its helpers.
+ *
+ * Compare real paths, not the strings: consumers invoke this through
+ * node_modules, which is a symlink into the stage, and Node reports the resolved
+ * path in `import.meta.url` while leaving `process.argv[1]` as written.
+ */
+function invokedDirectly() {
+  if (!process.argv[1]) {
+    return false;
+  }
+  try {
+    return fs.realpathSync(fileURLToPath(import.meta.url)) === fs.realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (invokedDirectly()) {
   await main(process.argv.slice(2));
 }
 
 async function main(argv) {
   const args = parseArgs(argv);
-  const checkout = path.resolve(args.checkout ?? defaultCheckout);
+  const command = args.command ?? "pane";
+  const consumer = resolveConsumer(args.consumer);
 
-  switch (args.command) {
+  switch (command) {
     case "link":
-      await link(checkout, resolveConsumer(args.consumer));
+      await link(requireCheckout(consumer, args.checkout), consumer);
       break;
     case "watch": {
-      const consumer = resolveConsumer(args.consumer);
+      const checkout = requireCheckout(consumer, args.checkout);
       await link(checkout, consumer);
       await watch(checkout, rememberConsumer(checkout, consumer));
       break;
     }
+    case "unlink":
+      unlink(consumer);
+      break;
+    case "update":
+      update(consumer);
+      break;
+    case "toggle":
+      if (currentMode(consumer) === "local") {
+        unlink(consumer);
+      } else {
+        await link(requireCheckout(consumer, args.checkout), consumer);
+      }
+      break;
     case "status":
-      status(resolveConsumer(args.consumer));
+      status(consumer);
+      break;
+    case "pane":
+      await pane(consumer, args.checkout);
       break;
     default:
-      console.log(`Usage: node scripts/geo-dev.mjs <link|watch|status> --consumer <frontend-dir> [--checkout <dir>]
+      console.log(`Usage: node geo-dev.mjs <command> --consumer <frontend-dir> [--checkout <dir>]
 
-  link    stage this checkout's pack payload into the app and point node_modules at it
-  watch   link, then rebuild and re-stage on every change
-  status  report what the app currently resolves, and whether it is stale`);
-      process.exit(args.command ? 1 : 0);
+  pane     dev-stack pane: show the mode, rebuild on change, switch on a keypress (default)
+  link     stage a checkout's pack payload into the app and point node_modules at it
+  watch    link, then rebuild and re-stage on every change
+  unlink   go back to the published package the lockfile pins
+  update   move to the newest published snapshot
+  toggle   unlink if local, link if not
+  status   report what the app resolves, and whether it is stale
+
+Only link and watch need a checkout; it is found beside your repositories,
+or named with --checkout / VUE_GEO_COMPONENTS_DIR.`);
+      process.exit(1);
   }
 }
