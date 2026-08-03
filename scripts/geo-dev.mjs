@@ -521,7 +521,12 @@ async function watch(checkout, consumers) {
   await build({
     root: checkout,
     configFile: path.join(checkout, "vite.config.ts"),
-    build: { watch: {} },
+    // emptyOutDir false, deliberately. A watch rebuild otherwise wipes dist and
+    // vite-plugin-dts only re-emits what it thinks changed, so every untouched
+    // .vue.d.ts disappears: dist goes from 33 files to 23 on the first rebuild
+    // and consumers silently lose the types for every component. Keeping the
+    // directory lets the unchanged declarations survive.
+    build: { watch: {}, emptyOutDir: false },
     // order: "post" so this runs after vite-plugin-dts has emitted its
     // declarations, rather than racing it for a half-written dist.
     plugins: [{ name: "aerius-geo-stage-mirror", closeBundle: { order: "post", handler: mirror } }],
