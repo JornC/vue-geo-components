@@ -84,14 +84,16 @@ type ProvinceBoundaryOptions = {
   styleFunction: NonNullable<LayerBaseProps["styleFunction"]>;
   visibility?: boolean;
   /**
-   * Edition of the CBS gebiedsindelingen service. PDOK publishes one per year
-   * and keeps the older ones, so pinning it keeps a map reproducible.
+   * Edition of the CBS gebiedsindelingen service. PDOK publishes one service per
+   * year and keeps the older ones; there is no `latest` alias, so the edition has
+   * to be named. Required rather than defaulted, because a default here would go
+   * stale in the library and every product would silently inherit it.
    */
-  year?: number;
+  year: number;
 };
 
 /** Dutch province boundaries, from the CBS gebiedsindelingen service. */
-export function createPdokProvinceBoundaryLayer({ name, styleFunction, visibility = true, year = 2024 }: ProvinceBoundaryOptions): WFSLayerProps {
+export function createPdokProvinceBoundaryLayer({ name, styleFunction, visibility = true, year }: ProvinceBoundaryOptions): WFSLayerProps {
   return {
     name,
     url: `${AREA_DIVISIONS_URL}/${year}/wfs/v1_0`,

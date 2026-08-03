@@ -57,15 +57,15 @@ describe("PDOK layers", () => {
     const style = () => undefined;
 
     it("requests the generalised province features over WFS", () => {
-      const layer = createPdokProvinceBoundaryLayer({ name: "Provinciegrenzen", styleFunction: style });
+      const layer = createPdokProvinceBoundaryLayer({ name: "Provinciegrenzen", styleFunction: style, year: 2026 });
 
       expect(layer.type).toBe(LayerType.WFS);
       expect(layer.layer).toBe("provincie_gegeneraliseerd");
       expect(layer.styleFunction).toBe(style);
     });
 
-    it("pins the service edition so a map stays reproducible", () => {
-      expect(createPdokProvinceBoundaryLayer({ name: "x", styleFunction: style }).url).toContain("/2024/");
+    it("addresses the service edition the caller asked for", () => {
+      expect(createPdokProvinceBoundaryLayer({ name: "x", styleFunction: style, year: 2026 }).url).toContain("/2026/");
       expect(createPdokProvinceBoundaryLayer({ name: "x", styleFunction: style, year: 2020 }).url).toContain("/2020/");
     });
   });
