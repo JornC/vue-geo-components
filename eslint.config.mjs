@@ -60,6 +60,24 @@ export default defineConfigWithVueTs(
     },
   },
 
+  {
+    // Node tooling, not library source: it runs outside the browser and reports
+    // to a terminal, so it needs Node globals and is allowed to print.
+    name: "geo/dev-scripts",
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+      },
+    },
+    rules: {
+      "no-console": "off",
+    },
+  },
+
   // Must be last: turns off every rule that Prettier owns.
   skipFormattingConfig,
 );

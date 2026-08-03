@@ -13,9 +13,9 @@ coverage
 *.local
 .vite
 
-# yalc (local library iteration)
-.yalc
-yalc.lock
+# Local iteration against a consuming app (scripts/geo-dev.mjs)
+.geo-dev.lock
+.geo-links.json
 
 # Editor directories and files
 .vscode/*
