@@ -6,9 +6,6 @@ import type View from "ol/View.js";
 import { extentCorners, sizeOf, type Corners } from "./extent";
 import { createMapFlyTo, type FlyController } from "./flyTo";
 
-/** Assumed viewport when the map has not been sized yet. */
-const DEFAULT_MAP_SIZE = { width: 800, height: 600 };
-
 /** Zoom bounds for a fitted extent. */
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 14;
@@ -44,6 +41,11 @@ function flightStateFor(map: Map): MapFlightState {
  *
  * Repeating the same extent is a no-op, so this is safe to call from a watcher
  * that fires more often than the target actually changes.
+ *
+ * Does nothing while the map has no viewport to fit into - a map in a hidden
+ * container reports a size of zero, and there is no honest zoom for that. No
+ * target is remembered either, so the next call once the map is laid out does
+ * the real work.
  */
 export function zoomToExtent(map: Map, extent: Extent): void {
   const view = map?.getView();
@@ -52,14 +54,13 @@ export function zoomToExtent(map: Map, extent: Extent): void {
     return;
   }
 
-  const startZoom = view.getZoom();
-  if (startZoom === undefined) {
+  const size = sizeOf(map.getSize());
+  if (!size || size.width <= 0 || size.height <= 0) {
     return;
   }
 
   const targetCenter: Coordinate = [(corners.minX + corners.maxX) / 2, (corners.minY + corners.maxY) / 2];
-  const size = sizeOf(map.getSize()) ?? DEFAULT_MAP_SIZE;
-  const targetZoom = zoomForExtent(view, corners, size, startZoom);
+  const targetZoom = zoomForExtent(view, corners, size);
   if (!Number.isFinite(targetZoom)) {
     return;
   }
@@ -74,7 +75,7 @@ export function zoomToExtent(map: Map, extent: Extent): void {
   state.controller.flyTo({ center: targetCenter, zoom: targetZoom });
 }
 
-function zoomForExtent(view: View, corners: Corners, size: { width: number; height: number }, startZoom: number): number {
+function zoomForExtent(view: View, corners: Corners, size: { width: number; height: number }): number {
   const width = corners.maxX - corners.minX;
   const height = corners.maxY - corners.minY;
 
@@ -90,10 +91,9 @@ function zoomForExtent(view: View, corners: Corners, size: { width: number; heig
   ];
   const visible: [number, number] = [size.width * (1 - VIEWPORT_PADDING * 2), size.height * (1 - VIEWPORT_PADDING * 2)];
 
+  // Both extent and viewport are known to be non-degenerate by now, so this is
+  // a real resolution - max(width / pixels, height / pixels) - not a maybe.
   const resolution = view.getResolutionForExtent(padded, visible);
-  if (!resolution) {
-    return Math.min(startZoom + 2, MAX_ZOOM);
-  }
 
   // ?? rather than ||: zoom 0 is a real zoom, and || would turn the widest
   // possible view into the narrowest one.
