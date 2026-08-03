@@ -65,16 +65,43 @@ describe("receptor grid", () => {
       expect(y).toBeCloseTo(center[1], 6);
     });
 
-    it("agrees with the label anchor about where a cell centre is", () => {
+    // Rounding the row before the column picks the wrong hexagon near a cell
+    // edge, so probe the whole cell rather than points close to its centre.
+    it("agrees with the receptor id round trip anywhere in the lattice", () => {
+      for (let i = 0; i < 2000; i++) {
+        const x = 5000 + ((i * 7919) % 270000) + (i % 13) * 0.37;
+        const y = 300000 + ((i * 6271) % 320000) + (i % 7) * 0.61;
+        const viaId = centerPointOnReceptor(x, y);
+        const snapped = centerPointOnReceptorAtZoom(x, y, 1);
+
+        expect(snapped[0]).toBeCloseTo(viaId[0], 6);
+        expect(snapped[1]).toBeCloseTo(viaId[1], 6);
+      }
+    });
+
+    it("keeps a cell centre fixed when snapped again at its own level", () => {
       for (const id of [1, 2, 1000, ROW_LENGTH + 1, 50000]) {
         for (const level of [1, 2, 3]) {
           const [x, y] = pointFromReceptorId(id);
           const snapped = centerPointOnReceptorAtZoom(x, y, level);
+          const resnapped = centerPointOnReceptorAtZoom(snapped[0], snapped[1], level);
+
+          expect(resnapped[0]).toBeCloseTo(snapped[0], 6);
+          expect(resnapped[1]).toBeCloseTo(snapped[1], 6);
+        }
+      }
+    });
+
+    it("anchors a label at the centre of the cell the receptor falls in", () => {
+      for (const id of [1, 2, 1000, ROW_LENGTH + 1, 50000]) {
+        for (const level of [1, 2, 3]) {
+          const [x, y] = pointFromReceptorId(id);
           const anchored = centerFromHexagon(id, level);
+          const snapped = centerPointOnReceptorAtZoom(x, y, level);
 
           expect(anchored).not.toBeNull();
-          expect(snapped[0]).toBeCloseTo(anchored![0], 6);
-          expect(snapped[1]).toBeCloseTo(anchored![1], 6);
+          expect(anchored![0]).toBeCloseTo(snapped[0], 6);
+          expect(anchored![1]).toBeCloseTo(snapped[1], 6);
         }
       }
     });

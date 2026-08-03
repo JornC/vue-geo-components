@@ -68,39 +68,44 @@ function offsetsForLevel(level: number): { horizontal: HexagonOffsets; vertical:
   return { horizontal, vertical, radius, height };
 }
 
-function gridParamsForLevel(level: number): {
-  minX: number;
-  minY: number;
-  tripleRadius: number;
-  halfHeight: number;
-  oneAndHalfRadius: number;
-} {
-  const { radius, height } = offsetsForLevel(level);
-  return {
-    minX: MIN_X,
-    minY: MIN_Y,
-    tripleRadius: radius * 3.0,
-    halfHeight: height / 2.0,
-    oneAndHalfRadius: (radius * 3.0) / 2.0,
-  };
-}
-
 /**
  * The centre of the lattice cell containing a point, at a given grid level.
  *
- * The lattice interleaves two offset rectangular grids (an "even" and an "odd"
- * one); this picks whichever of the two the point sits closest to.
+ * Rows sit `halfHeight` apart with every odd row shifted half a column, so the
+ * nearest centre is not always in the nearest row: a point can be closer to a
+ * shifted neighbour one row up or down. Rounding the row first and the column
+ * second gets this wrong for points near a cell edge, which is why the two
+ * neighbouring rows are considered as well and the closest candidate wins.
+ *
+ * A cell's Voronoi region is exactly its hexagon, so the nearest centre is the
+ * centre of the hexagon covering the point.
  */
 function nearestCenterAtZoom(x: number, y: number, level: number): [number, number] {
-  const { minX, minY, tripleRadius, halfHeight, oneAndHalfRadius } = gridParamsForLevel(level);
-  const eps = 1e-9;
-  const rowIndex = Math.floor((y - minY) / halfHeight + 0.5 + eps);
-  const odd = rowIndex % 2 !== 0;
-  const baseX = x - minX - (odd ? oneAndHalfRadius : 0);
-  const colIndex = Math.floor(baseX / tripleRadius + 0.5 + eps);
-  const cx = minX + colIndex * tripleRadius + (odd ? oneAndHalfRadius : 0);
-  const cy = minY + rowIndex * halfHeight;
-  return [cx, cy];
+  const { radius, height } = offsetsForLevel(level);
+  const tripleRadius = radius * 3.0;
+  const halfHeight = height / 2.0;
+  const oneAndHalfRadius = tripleRadius / 2.0;
+
+  const nearestRow = Math.floor((y - MIN_Y) / halfHeight);
+  let best: [number, number] = [MIN_X, MIN_Y];
+  let bestDistance = Infinity;
+
+  for (let offset = -1; offset <= 1; offset++) {
+    const row = nearestRow + offset;
+    // Rows below the origin make the remainder negative, so normalise it.
+    const shift = (((row % 2) + 2) % 2) !== 0 ? oneAndHalfRadius : 0;
+    const column = Math.round((x - MIN_X - shift) / tripleRadius);
+    const cx = MIN_X + column * tripleRadius + shift;
+    const cy = MIN_Y + row * halfHeight;
+    const distance = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+    // Strict, so a point exactly on an edge lands on the lower row every time.
+    if (distance < bestDistance - 1e-9) {
+      bestDistance = distance;
+      best = [cx, cy];
+    }
+  }
+
+  return best;
 }
 
 /**
