@@ -28,7 +28,7 @@ import fsp from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 /** Bumped when the contract with the consumer shell scripts changes. */
 export const geoDevProtocol = 1;
@@ -396,27 +396,35 @@ function status(consumer) {
   console.log(`  watcher: ${lockIsLive(saved.checkout) ? "running" : "NOT running - edits will not reach this app"}`);
 }
 
-const args = parseArgs(process.argv.slice(2));
-const checkout = path.resolve(args.checkout ?? defaultCheckout);
+// Only act when run as a command. Consumers import this file to read
+// geoDevProtocol before delegating to it, and the tests import its helpers.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main(process.argv.slice(2));
+}
 
-switch (args.command) {
-  case "link":
-    await link(checkout, resolveConsumer(args.consumer));
-    break;
-  case "watch": {
-    const consumer = resolveConsumer(args.consumer);
-    await link(checkout, consumer);
-    await watch(checkout, rememberConsumer(checkout, consumer));
-    break;
-  }
-  case "status":
-    status(resolveConsumer(args.consumer));
-    break;
-  default:
-    console.log(`Usage: node scripts/geo-dev.mjs <link|watch|status> --consumer <frontend-dir> [--checkout <dir>]
+async function main(argv) {
+  const args = parseArgs(argv);
+  const checkout = path.resolve(args.checkout ?? defaultCheckout);
+
+  switch (args.command) {
+    case "link":
+      await link(checkout, resolveConsumer(args.consumer));
+      break;
+    case "watch": {
+      const consumer = resolveConsumer(args.consumer);
+      await link(checkout, consumer);
+      await watch(checkout, rememberConsumer(checkout, consumer));
+      break;
+    }
+    case "status":
+      status(resolveConsumer(args.consumer));
+      break;
+    default:
+      console.log(`Usage: node scripts/geo-dev.mjs <link|watch|status> --consumer <frontend-dir> [--checkout <dir>]
 
   link    stage this checkout's pack payload into the app and point node_modules at it
   watch   link, then rebuild and re-stage on every change
   status  report what the app currently resolves, and whether it is stale`);
-    process.exit(args.command ? 1 : 0);
+      process.exit(args.command ? 1 : 0);
+  }
 }
