@@ -1,5 +1,5 @@
 import Style from "ol/style/Style.js";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createHandleFeatureClicked } from "@/layers/featureInteraction";
 import {
@@ -41,11 +41,16 @@ describe("nature areas", () => {
       expect(natureAreaExtent(feature)).toEqual([180000, 455000, 190000, 465000]);
     });
 
-    it("skips an unreadable site rather than losing the batch", () => {
+    it("skips an unreadable site rather than losing the batch, and says so", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
       const features = natureAreasToFeatures([{ ...area, id: "bad", centroidWkt: "NOT WKT" }, area]);
 
       expect(features).toHaveLength(1);
       expect(features[0]?.getId()).toBe("1");
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("bad"), expect.anything());
+
+      warn.mockRestore();
     });
   });
 

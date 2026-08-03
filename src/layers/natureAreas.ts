@@ -50,8 +50,8 @@ const wkt = new WKT();
 /**
  * Turn sites into features ready for a vector source.
  *
- * Sites whose geometry cannot be read are skipped rather than failing the whole
- * batch - one malformed record should not empty the map.
+ * Sites whose geometry cannot be read are logged and skipped rather than failing
+ * the whole batch - one malformed record should not empty the map.
  */
 export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
   const features: Feature[] = [];
@@ -64,9 +64,11 @@ export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
       feature.set(NATURE_AREA_AUTHORITY, area.authority);
       feature.set(NATURE_AREA_EXTENT, wkt.readGeometry(area.extentWkt).getExtent());
       features.push(feature);
-    } catch {
-      // Unreadable geometry: skip this site, keep the rest.
-      continue;
+    } catch (error) {
+      // Unreadable geometry: skip this site, keep the rest. Loud, because a site
+      // missing from the map is otherwise indistinguishable from one that is not
+      // in the data at all.
+      console.warn(`Skipping Natura 2000 site ${area.id}: geometry could not be read.`, error);
     }
   }
 
