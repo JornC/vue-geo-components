@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    // Matches the real consumers. The duplicate-peer failure shows up at call
+    // sites, not inside declaration files, so this must not hide it.
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["src"]
+}

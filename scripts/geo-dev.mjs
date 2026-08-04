@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Local development against a consuming app, without publishing.
  *
@@ -52,7 +51,7 @@ function fail(msg) {
 // The command is the first bare word, wherever it falls: consumers append
 // --consumer after forwarding their own arguments, so a bare invocation is
 // "--consumer <dir>" with no command at all.
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = {};
   for (let i = 0; i < argv.length; i++) {
     const [flag, inline] = argv[i].split("=");
@@ -101,11 +100,10 @@ function packList(checkout) {
   } catch {
     fail(`could not parse 'npm pack --json' output:\n${out.slice(0, 400)}`);
   }
-  const entry = Array.isArray(parsed) ? parsed[0] : Object.values(parsed)[0];
-  if (!entry?.files?.length) {
+  const files = packedPaths(parsed);
+  if (!files) {
     fail("'npm pack --json' reported no files");
   }
-  const files = entry.files.map((f) => f.path);
   if (!files.includes("package.json")) {
     fail("the pack list has no package.json - refusing to stage an unresolvable package");
   }
@@ -113,6 +111,16 @@ function packList(checkout) {
     fail("the pack list has no dist/ - build the library first: npm run build-only");
   }
   return files;
+}
+
+/**
+ * The file paths in an `npm pack --json` result. npm 10 and 11 return an array,
+ * npm 12 an object keyed by package name, and both are inside the range this
+ * repo supports. Returns undefined when the result carries no files at all.
+ */
+export function packedPaths(parsed) {
+  const entry = Array.isArray(parsed) ? parsed[0] : Object.values(parsed ?? {})[0];
+  return entry?.files?.length ? entry.files.map((f) => f.path) : undefined;
 }
 
 function runCapture(cmd, args, cwd) {
@@ -152,25 +160,33 @@ async function stageFiles(checkout, dest, files) {
  * The whole correctness argument in three checks. A symlink inside the stage
  * would resolve back into the checkout and reinstate the bug exactly.
  */
-async function assertStageInvariants(stage) {
+export async function stageProblems(stage) {
+  const problems = [];
   if (!fs.existsSync(path.join(stage, "package.json"))) {
-    fail("staged tree has no package.json - the package would not resolve");
+    problems.push("staged tree has no package.json - the package would not resolve");
   }
   const walk = async (dir) => {
     for (const item of await fsp.readdir(dir, { withFileTypes: true })) {
       const full = path.join(dir, item.name);
       if (item.isSymbolicLink()) {
-        fail(`staged tree contains a symlink (${full}) - it would resolve back into the checkout`);
-      }
-      if (item.isDirectory()) {
+        problems.push(`staged tree contains a symlink (${full}) - it would resolve back into the checkout`);
+      } else if (item.isDirectory()) {
         if (item.name === "node_modules") {
-          fail(`staged tree contains node_modules (${full}) - that is the duplication this avoids`);
+          problems.push(`staged tree contains node_modules (${full}) - that is the duplication this avoids`);
         }
         await walk(full);
       }
     }
   };
   await walk(stage);
+  return problems;
+}
+
+async function assertStageInvariants(stage) {
+  const problems = await stageProblems(stage);
+  if (problems.length) {
+    fail(problems.join("\n  "));
+  }
 }
 
 /**
@@ -178,9 +194,12 @@ async function assertStageInvariants(stage) {
  * the app's own tree, so the app must already have them. Report precisely what
  * is missing instead of staging a package whose imports cannot resolve.
  */
+export function missingRuntimeDeps(checkoutPkg, consumer) {
+  return Object.entries(checkoutPkg.dependencies ?? {}).filter(([name]) => !fs.existsSync(path.join(consumer, "node_modules", name, "package.json")));
+}
+
 function auditRuntimeDeps(checkoutPkg, consumer) {
-  const deps = Object.entries(checkoutPkg.dependencies ?? {});
-  const missing = deps.filter(([name]) => !fs.existsSync(path.join(consumer, "node_modules", name, "package.json")));
+  const missing = missingRuntimeDeps(checkoutPkg, consumer);
   if (missing.length) {
     const spec = missing.map(([name, range]) => `${name}@${range}`).join(" ");
     fail(
@@ -217,7 +236,7 @@ function auditPeers(checkoutPkg, checkout, consumer) {
  * published package carries these scripts too, so "has our package.json" is not
  * enough to tell the two apart - only a checkout has the sources.
  */
-function isCheckout(dir) {
+export function isCheckout(dir) {
   try {
     return readJson(path.join(dir, "package.json")).name === PACKAGE_NAME && fs.existsSync(path.join(dir, "src"));
   } catch {

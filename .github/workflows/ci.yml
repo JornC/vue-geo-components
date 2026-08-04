@@ -63,3 +63,25 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build-only
+
+  # Type-checks a throwaway app against a staged checkout. No consumer's CI
+  # covers this: they all install from a lockfile, so they only ever see the
+  # published package. This is the only place a change that would make an app
+  # resolve two copies of a peer gets caught.
+  link-mode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build-only
+      - name: Install the fixture app's dependencies
+        run: npm install --no-package-lock --no-audit --no-fund
+        working-directory: test/fixtures/consumer-app
+      - name: Stage this checkout into the fixture app
+        run: node scripts/geo-dev.mjs link --consumer test/fixtures/consumer-app
+      - name: Type-check the fixture app against the staged library
+        run: npx tsc --noEmit -p test/fixtures/consumer-app/tsconfig.json

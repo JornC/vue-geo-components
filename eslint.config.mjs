@@ -6,7 +6,9 @@ import skipFormattingConfig from "@vue/eslint-config-prettier/skip-formatting";
 export default defineConfigWithVueTs(
   {
     name: "app/files-to-ignore",
-    ignores: ["dist/**", "node_modules/**"],
+    // The fixture app holds an installed and a staged copy of this library;
+    // neither is source we wrote.
+    ignores: ["dist/**", "**/node_modules/**", "**/.geo-lib/**"],
   },
 
   js.configs.recommended,
