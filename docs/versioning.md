@@ -9,7 +9,7 @@ automated bump-back and no per-change version PR.
 ## Snapshots (`dev` tag)
 
 Every push to `main` publishes a snapshot to Nexus under the `dev` tag (see
-[`.github/workflows/on-push.yml`](../.github/workflows/on-push.yml)). This is how apps
+[`.github/workflows/publish.yml`](../.github/workflows/publish.yml)). This is how apps
 track the newest build.
 
 - CI runs first (lint, format, type-check, test, build). Only if it passes does the
@@ -68,9 +68,10 @@ what `package.json` says.
 - The npm repository on Nexus (`https://nexus.aerius.nl/repository/npm/`). The registry URL
   is configurable via the `NEXUS_REGISTRY` repo/org **variable**; set it only if the path
   differs from that default.
-- A dedicated Nexus CI account (not a personal login) with publish rights, and a token for
-  it stored as the `NEXUS_TOKEN` secret on the **upstream** repo
-  (`aerius/vue-geo-components`). `actions/setup-node` wires it up as `NODE_AUTH_TOKEN`.
+- A dedicated Nexus CI account (not a personal login) with publish rights, stored as the
+  `NEXUS_USERNAME` and `NEXUS_PASSWORD` secrets on the **upstream** repo
+  (`aerius/vue-geo-components`). The workflow base64-encodes the pair into a `NEXUS_AUTH`
+  environment variable, which the generated `.npmrc` reads.
 - Publishing runs only on the upstream repo. Forks run CI but never publish, so no secret
   is needed on a fork.
 - A Nexus cleanup policy that prunes old snapshot versions (see above).

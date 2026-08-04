@@ -1,71 +1,74 @@
 # Local development against a consuming app
 
-Change library code and see it in the consuming app right away, without publishing a new
-version each time. We use yalc: it swaps your local build into the app in place of the
-installed package.
-
-## Setup (once)
-
-yalc is stable and heavily used but no longer actively maintained, so we pin the last
-published version:
+Change library code and see it in the running app straight away, with nothing published.
 
 ```bash
-npm i -g yalc@1.0.0-pre.53
+npm run dev:link -- --consumer ../grip/source/frontend    # once
+npm run dev:watch -- --consumer ../grip/source/frontend   # rebuild and restage on save
 ```
 
-## Daily use
+In GRIP and Archive you need neither command: their dev stacks already run a `Geo lib` pane
+that does this, and `S` in that pane switches the app between your checkout and the
+published package.
 
-In the library, two terminals:
+## What it does, and why it is not a symlink
 
-```bash
-# terminal 1: rebuild the library every time you save
-npm run dev
+The app has to resolve this library exactly the way it would resolve an install from Nexus.
+Node and TypeScript resolve a module to its real path and then walk `node_modules` upward
+from there, so where the package physically sits decides which copy of `ol`, `vue`, `pinia`
+and `proj4` it finds.
 
-# terminal 2: send each new build into the linked apps
-npx nodemon --watch dist --exec "yalc push"
-```
+Symlinking a checkout into the app breaks that. The checkout root has its own
+`node_modules` holding all four - it needs them to build standalone - so the app ends up
+with two copies of each. OpenLayers classes carry private fields, which makes two copies
+nominally distinct, and every OpenLayers type stops being assignable to itself. In GRIP
+that was 66 type errors in files nobody had touched.
 
-In the consuming app, link the library once. Use `yalc link`, not `yalc add`: it swaps in
-your local build via a symlink and leaves `package.json` untouched, so there is nothing to
-accidentally commit.
+So we do not link the checkout. `scripts/geo-dev.mjs` stages the exact `npm pack` payload -
+the published artifact, nothing else - into `<app>/.geo-lib/` and points
+`node_modules/@aerius/vue-geo-components` at that. The stage holds no `node_modules` and no
+symlinks, both checked on every run, so there is no second copy to find.
 
-```bash
-yalc link @aerius/vue-geo-components
-```
+That is one placement rule instead of a list of packages to deduplicate, and it holds for
+`vue-tsc`, Volar, Cypress, vitest, `vite dev` and `vite build` at once - including for any
+peer added later.
 
-Now save a file in the library and the app updates on screen.
+## Commands
 
-## Keep it linked (no teardown needed)
+All of them take `--consumer <the app's frontend directory>`.
 
-You can leave the app linked to your local library permanently. There is no daily
-setup/teardown - the two watchers above keep it fresh while you work. You only unlink when
-you want the app back on the published version:
+| Command  | What it does                                                     |
+| -------- | ---------------------------------------------------------------- |
+| `pane`   | The dev-stack pane: shows the mode, rebuilds, switches on a key. |
+| `link`   | Stage this checkout and point the app at it.                     |
+| `watch`  | Link, then rebuild and restage on every save.                    |
+| `unlink` | Back to the published package the app's lockfile pins.           |
+| `update` | Move the app to the newest published snapshot.                   |
+| `status` | What the app resolves right now, and whether it is stale.        |
 
-```bash
-yalc remove @aerius/vue-geo-components && npm install
-```
+Only `link` and `watch` need a checkout. It is found beside your repositories; name it with
+`--checkout <dir>` or `VUE_GEO_COMPONENTS_DIR` if yours is elsewhere or under another name.
 
-The one thing to get right: keep yalc's local files out of the app's git. `yalc link`
-creates a `.yalc/` folder and a `yalc.lock` (it does not touch `package.json`). Add both to
-the app's `.gitignore`.
+## Things worth knowing
 
-## Windows
+**Nothing shows up in the app's git.** The stage writes its own `.gitignore`, and switching
+modes never touches the app's `package.json` or lockfile.
 
-It all works on Windows. Set these up:
+**`npm install` in the app replaces the link.** npm owns `node_modules`, so a plain install
+puts the published package back. The pane notices and restages; otherwise run `link` again.
 
-- **Node 24.** `nvm-windows` ignores `.nvmrc`. Run `nvm install 24 && nvm use 24`
-  yourself, or use `fnm` or `Volta`, which pick the version for you.
-- **Line endings.** The repo has a `.gitattributes` file that forces LF, which keeps
-  Prettier and the lint check happy. If you cloned before it existed, run
-  `git add --renormalize .` once.
-- **Two terminals.** Use two tabs, one for each command above.
-- **If saving doesn't rebuild** (antivirus, OneDrive, or a network drive can cause this),
-  turn on polling in that terminal:
-  - PowerShell: `$env:CHOKIDAR_USEPOLLING=1; npm run dev`
-  - cmd: `set CHOKIDAR_USEPOLLING=1 && npm run dev`
+**Runtime dependencies are not staged.** A real install resolves them from the app, so the
+app needs them already. `link` names any that are missing and how to add them, rather than
+staging a package whose imports cannot resolve.
 
-## Sharing changes with others
+**Peers come from the app.** If your checkout builds against a different version than the
+app runs, `link` says so. It does not refuse: both satisfy the declared range, and a Nexus
+install would allow the same.
 
-yalc only works on your machine. To give your changes to teammates or CI, push to `main`:
-that publishes a new `dev` snapshot to Nexus automatically. See
-[versioning.md](./versioning.md).
+**The stage is a snapshot, not a live view.** Without `watch` running, your edits do not
+reach the app. `status` compares the two and says when they differ.
+
+## Sharing changes
+
+This is local only. To give changes to teammates or CI, push to `main`: that publishes a new
+`dev` snapshot automatically. See [versioning.md](./versioning.md).

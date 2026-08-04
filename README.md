@@ -49,9 +49,10 @@ get the map with `useMap()`.
 Say an app uses this library and you want to always work against the latest version.
 There are two cases:
 
-**You are editing the library too.** Use yalc: your local library changes show up in the
-app the moment you save - live, with nothing to publish. This is the fastest loop. See
-[docs/local-development.md](./docs/local-development.md).
+**You are editing the library too.** Stage your checkout into the app with
+`npm run dev:watch -- --consumer <app>/source/frontend`: your changes show up the moment you
+save, with nothing to publish. GRIP and Archive already run this as a pane in their dev
+stacks. See [docs/local-development.md](./docs/local-development.md).
 
 **You just want the newest published build** (you're not editing the library). Depend on
 the `dev` tag in the app's `package.json`:
