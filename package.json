@@ -29,7 +29,7 @@
     "**/*.css"
   ],
   "scripts": {
-    "dev": "vite build --watch",
+    "dev": "vite build --watch --no-emptyOutDir",
     "dev:link": "node scripts/geo-dev.mjs link",
     "dev:watch": "node scripts/geo-dev.mjs watch",
     "dev:status": "node scripts/geo-dev.mjs status",
