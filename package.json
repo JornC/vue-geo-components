@@ -12,7 +12,8 @@
     "node": ">=20.19"
   },
   "files": [
-    "dist"
+    "dist",
+    "scripts"
   ],
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
