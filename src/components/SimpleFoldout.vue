@@ -19,38 +19,38 @@ const isOpen = ref(false);
 
 <style scoped>
 .container {
-  background-color: var(--fame-white, #fff);
+  background-color: var(--geo-surface, #fff);
   display: flex;
   flex-direction: column;
-  padding: var(--fame-spacing-8, 0.5rem);
+  padding: var(--geo-spacing, 0.5rem);
 }
 
 .container.isOpen {
-  background-color: var(--fame-main-content-background-color, #f2f4fe);
+  background-color: var(--geo-surface-raised, #f4f4f6);
 }
 
 .container .header {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  grid-gap: var(--fame-spacing-8, 0.5rem);
+  grid-gap: var(--geo-spacing, 0.5rem);
   align-items: center;
   cursor: pointer;
-  transition: all var(--anim, 0.2s);
+  transition: all var(--geo-anim, 0.2s);
 }
 
 .arrowIcon {
-  color: var(--fame-dark-blue, #193884);
-  transition: transform var(--anim, 0.2s);
+  color: var(--geo-accent, #333);
+  transition: transform var(--geo-anim, 0.2s);
   width: 18px;
 }
 
 .arrowIcon.open {
   transform: rotate(90deg);
-  color: var(--fame-float-panel-background, #fff);
-  background-color: var(--fame-float-panel-header-background, #193884);
+  color: var(--geo-on-accent, #fff);
+  background-color: var(--geo-accent, #333);
   width: 13px;
   height: 13px;
-  border: 3px solid var(--fame-float-panel-header-background, #193884);
+  border: 3px solid var(--geo-accent, #333);
   border-radius: 13px;
 }
 </style>

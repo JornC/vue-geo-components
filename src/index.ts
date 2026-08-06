@@ -9,7 +9,8 @@ export { default as MapView } from "./components/MapView.vue";
 // them and this library does not become a catch-all component library.
 export { default as LayerItemTemplate } from "./components/LayerItemTemplate.vue";
 export { default as LayerItemsLegend } from "./components/LayerItemsLegend.vue";
-export type { LegendDisplay, LegendItem } from "./components/legendDisplay";
+export { toLegendDisplay } from "./components/legendDisplay";
+export type { LegendDisplay, LegendItem, LegendTranslator } from "./components/legendDisplay";
 
 export { useMap, provideMap, mapInjectionKey } from "./composables/useMap";
 

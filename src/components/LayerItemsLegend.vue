@@ -24,22 +24,22 @@ defineProps<{ legend: LegendDisplay }>();
 
 <style scoped>
 .legend-list {
-  margin: var(--fame-spacing-8, 0.5rem) 0;
+  margin: var(--geo-spacing, 0.5rem) 0;
   display: flex;
   flex-direction: column;
-  gap: var(--fame-spacing-8, 0.5rem);
+  gap: var(--geo-spacing, 0.5rem);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: var(--fame-spacing-8, 0.5rem);
+  gap: var(--geo-spacing, 0.5rem);
 }
 
 .hexagon-icon {
   width: 20px;
   height: 20px;
-  --outline-color: var(--fame-dark-blue, #193884);
+  --outline-color: var(--geo-accent, #333);
   overflow: visible;
 }
 

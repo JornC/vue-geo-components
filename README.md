@@ -121,8 +121,10 @@ Everything comes from [`src/index.ts`](./src/index.ts):
 - **`LayerItemTemplate`** - A layer panel row: visibility toggle, opacity slider and
   legend.
 - **`LayerItemsLegend`** - The legend on its own, for a panel you build yourself.
-- **`LegendDisplay` / `LegendItem`** - What a legend renders. Text is resolved by you, so
-  the library carries no i18n.
+- **`LegendDisplay` / `LegendItem`** - What a legend renders.
+- **`toLegendDisplay` / `LegendTranslator`** - Resolve a layer's `ExtendedLegendProps`
+  i18n keys into a `LegendDisplay`. You hand it your `t` and `te`, so the library takes
+  on no i18n dependency of its own.
 - **`createHexagonFeature` / `pointFromReceptorId` / `receptorIdFromPoint` /
   `centerFromHexagon` / `isReceptorAtZoomLevel` / `centerPointOnReceptor` /
   `centerPointOnReceptorAtZoom`** - The AERIUS receptor grid: the RD-anchored hexagon
@@ -141,10 +143,25 @@ Everything comes from [`src/index.ts`](./src/index.ts):
   the cursor.
 - **`createMapFlyTo` / `zoomToExtent`** - Smooth pan-and-zoom along a van Wijk path, and
   fitting an extent with it.
-- **`depositionTotalScale` and the other AERIUS scales** - Colour scales and class bounds,
-  as data. Style functions and text stay with you.
 - **`scaleDenominatorToResolution`** - Turn a cartographic scale (1:800000) into an
   OpenLayers resolution.
+
+## Theming
+
+The components that draw chrome read these custom properties. Each has a neutral
+default, so they render sensibly unset; set them on any ancestor to match your product.
+
+| Property | Default | What it colours |
+| --- | --- | --- |
+| `--geo-surface` | `#fff` | Panel row background |
+| `--geo-surface-raised` | `#f4f4f6` | Panel row background while expanded |
+| `--geo-accent` | `#333` | Foldout chevron, and its badge once open |
+| `--geo-on-accent` | `#fff` | The chevron against that badge |
+| `--geo-spacing` | `0.5rem` | Padding and gaps |
+| `--geo-anim` | `0.2s` | Transition duration |
+
+`--hexagon-color` and `--outline-color` are not part of this: `LayerItemsLegend` sets
+them per item when drawing hexagon swatches.
 
 ## License
 
