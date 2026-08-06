@@ -9,7 +9,7 @@ const capabilities: WmtsCapabilitiesJson = {
     TileMatrixSet: [],
     Layer: [
       {
-        Identifier: "fame:areas",
+        Identifier: "example:areas",
         TileMatrixSetLink: [
           { TileMatrixSet: "EPSG:3857", TileMatrixSetLimits: [] },
           { TileMatrixSet: "EPSG:28992", TileMatrixSetLimits: LIMITS },
@@ -21,14 +21,14 @@ const capabilities: WmtsCapabilitiesJson = {
 
 describe("getMatrixLimitsForLayer", () => {
   it("returns the limits published for the requested projection", () => {
-    expect(getMatrixLimitsForLayer(capabilities, "fame:areas", "EPSG:28992")).toBe(LIMITS);
+    expect(getMatrixLimitsForLayer(capabilities, "example:areas", "EPSG:28992")).toBe(LIMITS);
   });
 
   it("rejects a layer the document does not describe", () => {
-    expect(() => getMatrixLimitsForLayer(capabilities, "fame:missing", "EPSG:28992")).toThrow(/no layer "fame:missing"/);
+    expect(() => getMatrixLimitsForLayer(capabilities, "example:missing", "EPSG:28992")).toThrow(/no layer "example:missing"/);
   });
 
   it("rejects a projection the layer is not published in", () => {
-    expect(() => getMatrixLimitsForLayer(capabilities, "fame:areas", "EPSG:4326")).toThrow(/not published in EPSG:4326/);
+    expect(() => getMatrixLimitsForLayer(capabilities, "example:areas", "EPSG:4326")).toThrow(/not published in EPSG:4326/);
   });
 });

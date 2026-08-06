@@ -69,7 +69,7 @@ describe("createLayer", () => {
       {
         type: LayerType.WMS,
         url: "https://example.invalid/wms",
-        layers: "fame:areas",
+        layers: "example:areas",
         version: "1.3.0",
         format: "image/png",
         transparent: true,
@@ -81,7 +81,7 @@ describe("createLayer", () => {
       {
         type: LayerType.WFS,
         url: "https://example.invalid/wfs",
-        layer: "fame:receptors",
+        layer: "example:receptors",
         version: "2.0.0",
         format: "application/json",
         viewparams: (): string => "",
@@ -149,7 +149,7 @@ describe("createLayer", () => {
       ...base,
       type: LayerType.WMS,
       url: "https://example.invalid/wms",
-      layers: "fame:areas",
+      layers: "example:areas",
       version: "1.3.0",
       format: "image/png",
       transparent: true,
@@ -160,7 +160,7 @@ describe("createLayer", () => {
 
     expect(layer).toBeInstanceOf(ImageLayer);
     const params = (layer as ImageLayer<ImageWMS>).getSource()!.getParams();
-    expect(params.LAYERS).toBe("fame:areas");
+    expect(params.LAYERS).toBe("example:areas");
     expect(params.VERSION).toBe("1.3.0");
     expect(params.TRANSPARENT).toBe(true);
     expect(params.VIEWPARAMS).toBe("year:2024");
@@ -171,7 +171,7 @@ describe("createLayer", () => {
       ...base,
       type: LayerType.WFS,
       url: "/geoserver/wfs",
-      layer: "fame:receptors",
+      layer: "example:receptors",
       version: "2.0.0",
       format: "application/json",
       viewparams: () => "dataset:m26",
@@ -184,7 +184,7 @@ describe("createLayer", () => {
     expect(url.searchParams.get("request")).toBe("GetFeature");
     expect(url.searchParams.get("version")).toBe("2.0.0");
     // The feature type travels in `layer`, not in a field named after the parameter.
-    expect(url.searchParams.get("typeName")).toBe("fame:receptors");
+    expect(url.searchParams.get("typeName")).toBe("example:receptors");
     expect(url.searchParams.get("outputFormat")).toBe("application/json");
     expect(url.searchParams.get("viewparams")).toBe("dataset:m26");
   });
