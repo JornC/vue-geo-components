@@ -20,19 +20,13 @@ export interface LegendDisplay {
   explainer?: string;
 }
 
-/**
- * The part of a vue-i18n composer this needs. Passed in rather than imported so
- * the library does not take on an i18n dependency, and so each product keeps
- * its own setup.
- */
+/** The part of a vue-i18n composer this needs, passed in so the library takes on no i18n dependency. */
 export interface LegendTranslator {
   t: (key: string) => string;
   te: (key: string) => boolean;
 }
 
 /**
- * Resolves a legend's i18n keys into text {@link LayerItemsLegend} can render.
- *
  * `variant` is an extra key segment for legends whose text depends on a
  * setting: with one, keys read `<prefix>.<variant>.title`, without, plain
  * `<prefix>.title`. A title or explainer with no translation is left off.

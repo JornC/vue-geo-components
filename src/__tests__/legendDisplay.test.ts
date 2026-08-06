@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { toLegendDisplay, type LegendTranslator } from "../components/legendDisplay";
 import { LegendIconType, LegendType, type ExtendedLegendProps } from "../layers/types";
 
-// Every key resolves to itself, so assertions name the key that was built.
+// Resolves every key to itself, so assertions can name the key that was built.
 const echo: LegendTranslator = { t: (key) => key, te: () => true };
 
-// Only the keys given are translatable, so missing title and explainer can be told apart.
+// Translates only the keys listed, to tell a missing title or explainer apart.
 const known = (keys: string[]): LegendTranslator => ({ t: (key) => `text:${key}`, te: (key) => keys.includes(key) });
 
 function legend(overrides: Partial<ExtendedLegendProps> = {}): ExtendedLegendProps {
