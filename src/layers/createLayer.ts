@@ -161,9 +161,9 @@ function createWfsLayer(layerProps: WFSLayerProps, projection: Projection): Laye
     minZoom: layerProps.minZoom,
     maxZoom: layerProps.maxZoom,
     style: layerProps.styleFunction,
-    // A style function reading the resolution only takes effect on a redraw.
-    // Without these the layer is scaled through a zoom and restyled once it
-    // settles, so anything keyed to resolution arrives in one jump.
+    // A style function only runs on a redraw. Without these the layer is
+    // scaled through a zoom and restyled once it settles, so anything keyed to
+    // the resolution arrives in one jump.
     updateWhileAnimating: true,
     updateWhileInteracting: true,
   });

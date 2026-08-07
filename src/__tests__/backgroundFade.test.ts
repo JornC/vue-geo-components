@@ -4,9 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import { LayerType, type LayerProps } from "../layers/types";
 import { applyBackgroundFade, backgroundFadeProgress, maxResolution } from "../map/backgroundFade";
 
-// Resolutions either side of the cut-off, in map units per pixel. Larger means
-// zoomed further out, and one zoom level out is twice the resolution. The fade
-// runs over two levels, so it is half done one level out and over after two.
+// Map units per pixel; larger is further out, and a level out is twice the
+// resolution. The fade runs over two levels.
 const ZOOMED_IN = maxResolution / 2;
 const AT_CUT_OFF = maxResolution;
 const HALFWAY_OUT = maxResolution * 2;
@@ -38,8 +37,8 @@ describe("backgroundFadeProgress", () => {
   });
 
   it("Eases across the zoom levels a user actually stops on", () => {
-    // Resolution halves per zoom level, so a fade measured in resolution can
-    // skip every resting zoom and arrive in one step.
+    // A fade measured in resolution skips every resting zoom and arrives in
+    // one step.
     expect(backgroundFadeProgress(HALFWAY_OUT), "One level out is mid-fade").toBeCloseTo(0.5, 5);
     expect(backgroundFadeProgress(FULLY_OUT), "Two levels out the background has gone").toBeUndefined();
   });

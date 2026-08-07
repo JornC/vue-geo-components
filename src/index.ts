@@ -88,6 +88,6 @@ export { createMapFlyTo } from "./map/flyTo";
 export type { FlyController, FlyOptions, FlyTarget } from "./map/flyTo";
 export { zoomToExtent } from "./map/zoomToExtent";
 
-// Handing the map from a detailed background to an overview as it zooms out.
-// What fades in, and how it is styled, stays with the product.
+// Handing a detailed background over to an overview as the map zooms out.
+// What fades in, and how it looks, stays with the product.
 export { applyBackgroundFade, backgroundFadeProgress, maxResolution } from "./map/backgroundFade";

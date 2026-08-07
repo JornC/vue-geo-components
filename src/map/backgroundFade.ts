@@ -1,20 +1,14 @@
 import type { LayerProps } from "../layers/types";
 import { scaleDenominatorToResolution } from "../layers/resolution";
 
-/**
- * Scale past which a detailed background stops earning its keep and an
- * overview takes over. Shared so products fading against the same overview do
- * not drift apart.
- */
+/** Scale past which a detailed background gives way to an overview. */
 const MAX_SCALE = 800_000;
 
 export const maxResolution = scaleDenominatorToResolution(MAX_SCALE);
 
 /**
- * Zoom levels the fade runs over. Measured in levels rather than in
- * resolution, because resolution doubles per level: a fixed span of it covers
- * less than one level here, so no resting zoom lands inside the fade and what
- * is fading in arrives in one step instead of easing.
+ * In levels, not resolution: resolution doubles per level, so a fixed span of
+ * it covers less than one and no resting zoom lands inside the fade.
  */
 const FADE_ZOOM_LEVELS = 2;
 
