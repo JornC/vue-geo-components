@@ -194,7 +194,6 @@ function createWmtsLayer(layerProps: WMTSLayerProps, projection: Projection): La
     zIndex: layerProps.zIndex,
     minZoom: layerProps.minZoom,
     maxZoom: layerProps.maxZoom,
-    preload: Number.POSITIVE_INFINITY,
   });
 
   layerProps.layerRef = wmtsLayer;
