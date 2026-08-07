@@ -8,9 +8,12 @@ export const maxResolution = scaleDenominatorToResolution(MAX_SCALE);
 
 /**
  * In levels, not resolution: resolution doubles per level, so a fixed span of
- * it covers less than one and no resting zoom lands inside the fade.
+ * it means something different at either end of the scale.
+ *
+ * One level, because the overview has to be solid by the zoom a map opens on,
+ * which sits a little over a level past the cut-off.
  */
-const FADE_ZOOM_LEVELS = 2;
+const FADE_ZOOM_LEVELS = 1;
 
 /**
  * 0 at the cut-off, rising to 1 fully zoomed out, undefined once the

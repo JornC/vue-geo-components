@@ -5,11 +5,12 @@ import { LayerType, type LayerProps } from "../layers/types";
 import { applyBackgroundFade, backgroundFadeProgress, maxResolution } from "../map/backgroundFade";
 
 // Map units per pixel; larger is further out, and a level out is twice the
-// resolution. The fade runs over two levels.
+// resolution. The fade runs over one level, so half of it is a doubling's
+// square root.
 const ZOOMED_IN = maxResolution / 2;
 const AT_CUT_OFF = maxResolution;
-const HALFWAY_OUT = maxResolution * 2;
-const FULLY_OUT = maxResolution * 4;
+const HALFWAY_OUT = maxResolution * Math.SQRT2;
+const FULLY_OUT = maxResolution * 2;
 
 type StubLayer = LayerProps & { layerRef: Layer };
 
@@ -36,11 +37,15 @@ describe("backgroundFadeProgress", () => {
     expect(backgroundFadeProgress(ZOOMED_IN), "Zoomed in there is nothing to fade").toBeLessThan(0);
   });
 
-  it("Eases across the zoom levels a user actually stops on", () => {
-    // A fade measured in resolution skips every resting zoom and arrives in
-    // one step.
-    expect(backgroundFadeProgress(HALFWAY_OUT), "One level out is mid-fade").toBeCloseTo(0.5, 5);
-    expect(backgroundFadeProgress(FULLY_OUT), "Two levels out the background has gone").toBeUndefined();
+  it("Runs the fade over a zoom level, not a span of resolution", () => {
+    expect(backgroundFadeProgress(HALFWAY_OUT), "Half a level out is mid-fade").toBeCloseTo(0.5, 5);
+    expect(backgroundFadeProgress(FULLY_OUT), "A level out the background has gone").toBeUndefined();
+  });
+
+  it("Has handed over by the zoom a map opens on", () => {
+    // A little over a level past the cut-off on the RD ladder, and the point
+    // of a one-level fade: the overview must be solid there, not half drawn.
+    expect(backgroundFadeProgress(maxResolution * 2.03), "The opening view shows the overview alone").toBeUndefined();
   });
 });
 
