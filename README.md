@@ -151,14 +151,14 @@ Everything comes from [`src/index.ts`](./src/index.ts):
 The components that draw chrome read these custom properties. Each has a neutral
 default, so they render sensibly unset; set them on any ancestor to match your product.
 
-| Property | Default | What it colours |
-| --- | --- | --- |
-| `--geo-surface` | `#fff` | Panel row background |
-| `--geo-surface-raised` | `#f4f4f6` | Panel row background while expanded |
-| `--geo-accent` | `#333` | Foldout chevron, and its badge once open |
-| `--geo-on-accent` | `#fff` | The chevron against that badge |
-| `--geo-spacing` | `0.5rem` | Padding and gaps |
-| `--geo-anim` | `0.2s` | Transition duration |
+| Property               | Default   | What it colours                          |
+| ---------------------- | --------- | ---------------------------------------- |
+| `--geo-surface`        | `#fff`    | Panel row background                     |
+| `--geo-surface-raised` | `#f4f4f6` | Panel row background while expanded      |
+| `--geo-accent`         | `#333`    | Foldout chevron, and its badge once open |
+| `--geo-on-accent`      | `#fff`    | The chevron against that badge           |
+| `--geo-spacing`        | `0.5rem`  | Padding and gaps                         |
+| `--geo-anim`           | `0.2s`    | Transition duration                      |
 
 `--hexagon-color` and `--outline-color` are not part of this: `LayerItemsLegend` sets
 them per item when drawing hexagon swatches.

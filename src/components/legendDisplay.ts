@@ -33,11 +33,7 @@ export interface LegendTranslator {
  *
  * Call it from a template so it re-runs when the locale or the variant changes.
  */
-export function toLegendDisplay(
-  legend: ExtendedLegendProps | undefined,
-  { t, te }: LegendTranslator,
-  variant?: string,
-): LegendDisplay | undefined {
+export function toLegendDisplay(legend: ExtendedLegendProps | undefined, { t, te }: LegendTranslator, variant?: string): LegendDisplay | undefined {
   if (!legend) {
     return undefined;
   }

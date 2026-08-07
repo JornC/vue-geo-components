@@ -31,20 +31,23 @@ describe("toLegendDisplay", () => {
   it("Builds one item per style, keyed and coloured from it", () => {
     const display = toLegendDisplay(legend(), echo);
 
-    expect(display?.items.map((item) => item.key), "Item keys come from the style keys").toEqual(["HR", "VR"]);
-    expect(display?.items.map((item) => item.color), "Swatches take the style fill colour").toEqual([
-      "#F4E798",
-      "#BBDDEA",
-    ]);
+    expect(
+      display?.items.map((item) => item.key),
+      "Item keys come from the style keys",
+    ).toEqual(["HR", "VR"]);
+    expect(
+      display?.items.map((item) => item.color),
+      "Swatches take the style fill colour",
+    ).toEqual(["#F4E798", "#BBDDEA"]);
   });
 
   it("Resolves item labels under the legend's prefix", () => {
     const display = toLegendDisplay(legend(), echo);
 
-    expect(display?.items.map((item) => item.label), "Each label is prefix plus style key").toEqual([
-      "map.legend.directive.HR",
-      "map.legend.directive.VR",
-    ]);
+    expect(
+      display?.items.map((item) => item.label),
+      "Each label is prefix plus style key",
+    ).toEqual(["map.legend.directive.HR", "map.legend.directive.VR"]);
   });
 
   it("Puts the variant between the prefix and the key", () => {
@@ -63,14 +66,10 @@ describe("toLegendDisplay", () => {
   it("Resolves the explainer only when one is asked for and translated", () => {
     const withExplainer = legend({ i18nExplainer: "map.legend.directive.explainer" });
 
-    expect(
-      toLegendDisplay(withExplainer, known(["map.legend.directive.explainer"]))?.explainer,
-      "A translated explainer is resolved",
-    ).toBe("text:map.legend.directive.explainer");
-    expect(
-      toLegendDisplay(withExplainer, known([]))?.explainer,
-      "An untranslated explainer is omitted",
-    ).toBeUndefined();
+    expect(toLegendDisplay(withExplainer, known(["map.legend.directive.explainer"]))?.explainer, "A translated explainer is resolved").toBe(
+      "text:map.legend.directive.explainer",
+    );
+    expect(toLegendDisplay(withExplainer, known([]))?.explainer, "An untranslated explainer is omitted").toBeUndefined();
     expect(toLegendDisplay(legend(), echo)?.explainer, "No explainer key means no explainer").toBeUndefined();
   });
 
