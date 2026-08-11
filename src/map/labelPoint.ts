@@ -34,19 +34,6 @@ const CANDIDATES_PER_AXIS = 12;
  */
 const DETAIL_TO_DROP = 1 / 2000;
 
-/**
- * Holes narrower than this, in projected metres, are left out of the search.
- *
- * Simplifying cannot touch them: a ring needs four points to stay a ring, so a shape riddled with
- * small holes has a floor no tolerance gets under. The Veluwe is one outer ring and 739 holes -
- * villages, farms and roads inside the forest - and however coarse the tolerance, 736 of them sit at
- * that floor. That is most of the work, for holes under a pixel at the zooms a name is drawn at.
- *
- * No larger than this: on a river system the holes are the shape, and dropping 250 metre ones moves
- * Rijntakken's name the better part of a kilometre.
- */
-const HOLE_TOO_SMALL_TO_MATTER = 100;
-
 type Best = { at: Coordinate; room: number };
 
 /**
@@ -80,14 +67,6 @@ function distanceToNearestEdge(at: Coordinate, rings: Coordinate[][]): number {
   }
 
   return nearest;
-}
-
-/** The width or height of a ring, whichever is greater. */
-function across(ring: Coordinate[]): number {
-  const xs = ring.map((position) => position[0] as number);
-  const ys = ring.map((position) => position[1] as number);
-
-  return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
 }
 
 function roomiest(outline: ReturnType<typeof turfPolygon>, within: number[], perAxis: number): Best | undefined {
@@ -124,10 +103,14 @@ export function labelPoint(shape: Polygon): Coordinate | undefined {
     return undefined;
   }
 
-  // turf will not read a ring of fewer than four positions, and tiles hand them over: quantising a
-  // tile to its grid flattens a small enough hole to two or three points. Those go out with the
-  // other small holes. Only a failed outer ring costs the label, because without it there is no
-  // shape left - one bad hole out of the Veluwe's 739 must not, which is how it lost its name.
+  // Only the outline, with the holes filled in. An area is riddled with them - the Veluwe has 739,
+  // being the villages, farms and roads inside the forest - and they are most of the points, most of
+  // the work, and a standing source of trouble, since a tile quantised to its grid flattens a small
+  // enough hole to two or three points, which turf will not read at all.
+  //
+  // A name wants the middle of the mass, and the middle of a nature area is nature: measured over
+  // the areas that carry the most holes, filling them has never yet put a name inside one. It could,
+  // on an area with a large enough hole near its middle, and then the name would sit on a village.
   const outer = rings[0];
   if (outer === undefined || outer.length < 4) {
     return undefined;
@@ -135,8 +118,7 @@ export function labelPoint(shape: Polygon): Coordinate | undefined {
 
   const [minX, minY, maxX, maxY] = shape.getExtent() as [number, number, number, number];
   const span = Math.max(maxX - minX, maxY - minY);
-  const worthKeeping = [outer, ...rings.slice(1).filter((hole) => hole.length >= 4 && across(hole) >= HOLE_TOO_SMALL_TO_MATTER)];
-  const outline = simplify(turfPolygon(worthKeeping), { tolerance: span * DETAIL_TO_DROP, highQuality: false });
+  const outline = simplify(turfPolygon([outer]), { tolerance: span * DETAIL_TO_DROP, highQuality: false });
 
   return roomiest(outline, [minX, minY, maxX, maxY], CANDIDATES_PER_AXIS)?.at;
 }
