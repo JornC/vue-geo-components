@@ -124,15 +124,18 @@ export function labelPoint(shape: Polygon): Coordinate | undefined {
     return undefined;
   }
 
-  // turf will not read a ring of fewer than four positions. Refusing it here keeps the throw out of
-  // a pass that runs while the map is drawing.
-  if (rings.some((ring) => ring.length < 4)) {
+  // turf will not read a ring of fewer than four positions, and tiles hand them over: quantising a
+  // tile to its grid flattens a small enough hole to two or three points. Those go out with the
+  // other small holes. Only a failed outer ring costs the label, because without it there is no
+  // shape left - one bad hole out of the Veluwe's 739 must not, which is how it lost its name.
+  const outer = rings[0];
+  if (outer === undefined || outer.length < 4) {
     return undefined;
   }
 
   const [minX, minY, maxX, maxY] = shape.getExtent() as [number, number, number, number];
   const span = Math.max(maxX - minX, maxY - minY);
-  const worthKeeping = [rings[0] as Coordinate[], ...rings.slice(1).filter((hole) => across(hole) >= HOLE_TOO_SMALL_TO_MATTER)];
+  const worthKeeping = [outer, ...rings.slice(1).filter((hole) => hole.length >= 4 && across(hole) >= HOLE_TOO_SMALL_TO_MATTER)];
   const outline = simplify(turfPolygon(worthKeeping), { tolerance: span * DETAIL_TO_DROP, highQuality: false });
 
   return roomiest(outline, [minX, minY, maxX, maxY], CANDIDATES_PER_AXIS)?.at;

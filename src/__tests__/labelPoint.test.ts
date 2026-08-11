@@ -150,4 +150,25 @@ describe("Label point", () => {
     // the name of an empty square nearer its corner than its middle.
     expect(Math.hypot(x - 500, y - 500), "The middle of a square is where a name has most room").toBeLessThan(100);
   });
+
+  it("Survives a hole the tiles have flattened", () => {
+    // Quantising a tile to its grid can leave a tiny hole with two or three points. The Veluwe has
+    // 739 holes, so one of them arriving broken must not cost the whole area its name.
+    const nicked = new Polygon([
+      [
+        [0, 0],
+        [1000, 0],
+        [1000, 1000],
+        [0, 1000],
+        [0, 0],
+      ],
+      [
+        [200, 200],
+        [210, 200],
+        [200, 200],
+      ],
+    ]);
+
+    expect(labelPoint(nicked), "One broken hole must not lose the label").toBeDefined();
+  });
 });
