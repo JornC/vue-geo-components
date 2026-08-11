@@ -38,6 +38,8 @@ export type {
   Datum,
 } from "./layers/types";
 export { CombinedLayers } from "./layers/combinedLayers";
+export { isLayerGroupVisible, layerGroupOpacity, setLayerGroupOpacity, setLayerGroupVisible } from "./layers/layerGroup";
+export type { LayerGroup } from "./layers/layerGroup";
 export { createLayer } from "./layers/createLayer";
 export { toLegendStyleValues, toStylesMap, findStyleKey } from "./layers/layerStyle";
 

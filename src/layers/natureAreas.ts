@@ -11,16 +11,8 @@ import { LABEL_SHAPE, placeLabels } from "../map/labelPlacement";
 import { NATURE_AREA_NAME, natureAreasToFeatures, type NatureArea } from "./natureAreaPoints";
 import { toStylesMap } from "./layerStyle";
 import { getMatrixLimitsForLayer, type WmtsCapabilitiesJson } from "./wmtsCapabilities";
-import type { LegendDisplay } from "../components/legendDisplay";
-import {
-  LegendIconType,
-  LayerType,
-  type EmptyVectorLayerProps,
-  type GeoInformation,
-  type LayerProps,
-  type LayerStyleType,
-  type VectorTileLayerProps,
-} from "./types";
+import type { LayerGroup } from "./layerGroup";
+import { LegendIconType, LayerType, type EmptyVectorLayerProps, type GeoInformation, type LayerStyleType, type VectorTileLayerProps } from "./types";
 
 /**
  * The Natura 2000 areas the FAME platform publishes, as two layers drawn as one thing: the directive
@@ -75,7 +67,7 @@ export function directiveAreaStyle(feature: FeatureLike): Style | null {
 }
 
 /** One entry per directive, in the order they are drawn. Labels are the caller's, already resolved. */
-export function directiveAreaLegend(labels: Record<string, string>): LegendDisplay {
+export function directiveAreaLegend(labels: Record<string, string>): LayerGroup["legend"] {
   return {
     iconType: LegendIconType.CIRCLE,
     items: directiveAreas.map((area) => ({
@@ -194,10 +186,7 @@ export type NatureAreaLayersOptions = {
   font?: string;
 };
 
-export type NatureAreaLayers = {
-  /** In draw order: the directive areas, then the names over them. */
-  layers: LayerProps[];
-  legend: LegendDisplay;
+export type NatureAreaLayers = LayerGroup & {
   /**
    * Puts the names on their layer and keeps each one on the outline it names. Call once the layers
    * are on the map, since an empty vector layer has no source before that.
@@ -268,5 +257,5 @@ export async function createNatureAreaLayers({
     });
   }
 
-  return { layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
+  return { name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
 }
