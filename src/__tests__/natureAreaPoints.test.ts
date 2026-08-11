@@ -1,15 +1,9 @@
 import Style from "ol/style/Style.js";
+import { natureAreaPointStyle } from "@/layers/natureAreaPoints";
 import { describe, expect, it, vi } from "vitest";
 
 import { createHandleFeatureClicked } from "@/layers/featureInteraction";
-import {
-  NATURE_AREA_AUTHORITY,
-  NATURE_AREA_NAME,
-  natureAreaExtent,
-  natureAreaPointStyle,
-  natureAreasToFeatures,
-  type NatureArea,
-} from "@/layers/natureAreaPoints";
+import { NATURE_AREA_AUTHORITY, NATURE_AREA_NAME, natureAreaExtent, natureAreasToFeatures, type NatureArea } from "@/layers/natureAreaFeatures";
 
 const area: NatureArea = {
   id: "1",

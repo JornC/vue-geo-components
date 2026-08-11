@@ -70,15 +70,9 @@ export {
 } from "./layers/pdok";
 
 // Natura 2000 sites as map points. Fetching them stays with the product.
-export {
-  NATURE_AREA_AUTHORITY,
-  NATURE_AREA_EXTENT,
-  NATURE_AREA_NAME,
-  natureAreaExtent,
-  natureAreaPointStyle,
-  natureAreasToFeatures,
-} from "./layers/natureAreaPoints";
-export type { NatureArea } from "./layers/natureAreaPoints";
+export { NATURE_AREA_AUTHORITY, NATURE_AREA_EXTENT, NATURE_AREA_NAME, natureAreaExtent, natureAreasToFeatures } from "./layers/natureAreaFeatures";
+export type { NatureArea } from "./layers/natureAreaFeatures";
+export { natureAreaPointStyle } from "./layers/natureAreaPoints";
 
 // Layer plumbing.
 export { getMatrixLimitsForLayer } from "./layers/wmtsCapabilities";

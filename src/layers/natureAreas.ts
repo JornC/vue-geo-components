@@ -8,7 +8,7 @@ import { Fill, Style, Text } from "ol/style.js";
 import { createFromCapabilitiesMatrixSet } from "ol/tilegrid/WMTS.js";
 
 import { LABEL_SHAPE, placeLabels } from "../map/labelPlacement";
-import { NATURE_AREA_NAME, natureAreasToFeatures, type NatureArea } from "./natureAreaPoints";
+import { NATURE_AREA_NAME, natureAreasToFeatures, type NatureArea } from "./natureAreaFeatures";
 import { toStylesMap } from "./layerStyle";
 import { getMatrixLimitsForLayer, type WmtsCapabilitiesJson } from "./wmtsCapabilities";
 import type { LayerGroup } from "./layerGroup";
