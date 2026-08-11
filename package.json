@@ -77,6 +77,9 @@
     "vue-tsc": "^3.2.2"
   },
   "dependencies": {
+    "@turf/boolean-point-in-polygon": "^7.4.0",
+    "@turf/helpers": "^7.4.0",
+    "@turf/point-to-polygon-distance": "^7.4.0",
     "d3-interpolate": "^3.0.1"
   }
 }
