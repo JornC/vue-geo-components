@@ -10,9 +10,8 @@ import { NATURE_AREA_NAME } from "./natureAreaFeatures";
 /**
  * How a Natura 2000 site point is drawn: a dot, and a labelled marker while the pointer is on it.
  *
- * The colours and the typeface are AERIUS', not any one product's. When a point counts as hovered,
- * and whether the points are shown at all, are the product's to decide - both live in its own state
- * rather than on the feature.
+ * When a point counts as hovered, and whether the points are shown at all, are the product's to
+ * decide - both live in its own state rather than on the feature.
  */
 
 /** Georama is the AERIUS typeface. */

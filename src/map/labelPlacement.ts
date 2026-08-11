@@ -15,13 +15,20 @@ import RenderFeature, { toGeometry } from "ol/render/Feature.js";
  * Standing a name on the shape it belongs to, using the outlines a vector tile layer is drawing.
  *
  * Names live on their own layer, one point per thing named, because a tile layer holds a shape as
- * one polygon per tile it crosses and would draw the name once per piece. Where each name goes is
- * worked out from those pieces all the same, so it follows the shape rather than sitting on a fixed
- * point of its own.
+ * one polygon per tile it crosses and would draw the name once per piece.
  */
 
 /** Extent of the shape a name was placed on, and the sign that it has one to stand on at all. */
 export const LABEL_SHAPE = "labelShape";
+
+/**
+ * Extent of the shape last considered, placed on or not.
+ *
+ * Kept apart from {@link LABEL_SHAPE} because a shape can be worth naming and still have nowhere to
+ * put the name - a strip narrower than the search grid holds no candidate. Without this the search
+ * would run again on every frame for a name that will never be placed.
+ */
+const LABEL_TRIED = "labelTried";
 
 /** Coarser picks the wrong part of a shape with several open areas. */
 const CANDIDATES_PER_AXIS = 12;
@@ -59,9 +66,8 @@ function distanceToNearestEdge(at: Coordinate, rings: Coordinate[][]): number {
  * The point inside the shape with the most room around it, which is where a name reads best.
  *
  * A centroid will not serve: the centroid of a crescent or a river system falls outside the shape
- * it belongs to. Holes are filled in first. They are most of the points in a detailed outline, a
- * tile quantised to its grid can flatten a small one to a ring too short for turf to read, and a
- * name wants the middle of the mass anyway.
+ * it belongs to. Holes are filled in first, since a tile quantised to its grid can flatten a small
+ * one to a ring too short for turf to read.
  */
 export function labelPoint(shape: Polygon): Coordinate | undefined {
   const outer = shape.getCoordinates()[0];
@@ -158,9 +164,11 @@ export function placeLabels({ labels, shapes, matchOn, view, worthPlacing }: Lab
     const on = piece?.getExtent();
     const wanted = piece !== undefined && on !== undefined && (worthPlacing?.(on, label) ?? true);
 
-    if (sameExtent(label.get(LABEL_SHAPE) as Extent | undefined, wanted ? on : undefined)) {
+    const considering = wanted ? on : undefined;
+    if (sameExtent(label.get(LABEL_TRIED) as Extent | undefined, considering)) {
       continue;
     }
+    label.set(LABEL_TRIED, considering);
 
     const at = wanted && piece !== undefined ? labelPoint(piece) : undefined;
     label.set(LABEL_SHAPE, at ? on : undefined);

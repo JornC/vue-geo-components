@@ -22,10 +22,13 @@ import { LegendIconType, LayerType, type EmptyVectorLayerProps, type GeoInformat
  * into every tile it crosses, so a name put on those is drawn several times over. FAME's nature API
  * publishes one record per site, which is one name.
  *
- * Where FAME is and which dataset to read are the caller's to say. Nothing here reads configuration.
+ * Where FAME is and which dataset to read are passed in; nothing here reads configuration.
  */
 
 const FAME_LAYER = "monitor:natura2000-area-natura2000-directive-areas";
+
+/** Identifies the group these layers are handed over as. */
+export const NATURE_AREAS_GROUP = "nature-areas";
 
 /** Property a tile feature carries its directive in. */
 const DIRECTIVE_CODE = "natura2000_directive_area_code";
@@ -36,13 +39,15 @@ const AREA_CODE = "natura2000_area_code";
 /** Not a FAME code: what a feature carrying none falls under. */
 export const UNDETERMINED = "undetermined";
 
-/** As calculator draws these same sites: bold, black, no halo. */
+/** No halo, and black rather than a colour, as these sites are drawn elsewhere in AERIUS. */
 export const NATURE_AREA_LABEL_FONT = 'bold 13px "Noto Sans", Helvetica, Arial, sans-serif';
 
 const LABEL_COLOUR = "#000000";
 const LABEL_WRAP_CHARACTERS = 16;
-const LABEL_CHARACTER_WIDTH = 7.2;
-const LABEL_LINE_HEIGHT = 15;
+
+/** Of the font size, averaged over the faces AERIUS draws in. */
+const CHARACTER_WIDTH = 0.55;
+const LINE_HEIGHT = 1.15;
 
 /** How much larger than its site a name may be and still be worth drawing. */
 const LABEL_TO_AREA_RATIO = 1.6;
@@ -63,7 +68,7 @@ const fills = toStylesMap(directiveAreas);
 
 /** An unknown code draws nothing rather than being coloured as some other directive. */
 export function directiveAreaStyle(feature: FeatureLike): Style | null {
-  return fills.get(feature.get(DIRECTIVE_CODE) ?? UNDETERMINED) ?? null;
+  return fills.get(feature.get(DIRECTIVE_CODE) || UNDETERMINED) ?? null;
 }
 
 /** One entry per directive, in the order they are drawn. Labels are the caller's, already resolved. */
@@ -100,13 +105,19 @@ export function wrapLabel(name: string, maxCharacters: number = LABEL_WRAP_CHARA
   return lines.join("\n");
 }
 
-function fitsArea(label: string, shape: Extent, resolution: number): boolean {
+/** Points of the font, so a caller that changes the font is measured in it rather than in 13px. */
+function fontSize(font: string): number {
+  return Number(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? 13);
+}
+
+function fitsArea(label: string, shape: Extent, resolution: number, font: string): boolean {
   const lines = label.split("\n");
-  const width = Math.max(...lines.map((line) => line.length)) * LABEL_CHARACTER_WIDTH;
+  const size = fontSize(font);
+  const width = Math.max(...lines.map((line) => line.length)) * size * CHARACTER_WIDTH;
 
   return (
     width <= (getWidth(shape) / resolution) * LABEL_TO_AREA_RATIO &&
-    lines.length * LABEL_LINE_HEIGHT <= (getHeight(shape) / resolution) * LABEL_TO_AREA_RATIO
+    lines.length * size * LINE_HEIGHT <= (getHeight(shape) / resolution) * LABEL_TO_AREA_RATIO
   );
 }
 
@@ -120,7 +131,7 @@ function labelStyle(font: string) {
 
     const label = wrapLabel(String(name));
 
-    return fitsArea(label, shape, resolution)
+    return fitsArea(label, shape, resolution, font)
       ? new Style({ text: new Text({ text: label, font, fill: new Fill({ color: LABEL_COLOUR }) }) })
       : undefined;
   };
@@ -141,15 +152,20 @@ export async function fetchNatureAreas(host: string, dataset: string): Promise<N
 
   const areas = (await response.json()) as FameNatureArea[];
 
-  return areas
-    .filter((area) => area.natura2000AreaInfo?.centroid && area.natura2000AreaInfo.extent)
-    .map((area) => ({
-      id: area.id,
-      name: area.name,
-      authority: area.natura2000AreaInfo?.authority,
-      centroidWkt: area.natura2000AreaInfo?.centroid as string,
-      extentWkt: area.natura2000AreaInfo?.extent as string,
-    }));
+  const usable = areas.filter((area) => area.natura2000AreaInfo?.centroid && area.natura2000AreaInfo.extent);
+  for (const area of areas.filter((area) => !usable.includes(area))) {
+    // Loud, because a site missing from the map is otherwise indistinguishable from one that is
+    // not in the data at all.
+    console.warn(`Skipping Natura 2000 site ${area.id}: it has no centroid or extent.`);
+  }
+
+  return usable.map((area) => ({
+    id: area.id,
+    name: area.name,
+    authority: area.natura2000AreaInfo?.authority,
+    centroidWkt: area.natura2000AreaInfo?.centroid as string,
+    extentWkt: area.natura2000AreaInfo?.extent as string,
+  }));
 }
 
 function wmtsUrl(host: string): string {
@@ -252,10 +268,10 @@ export async function createNatureAreaLayers({
         shapes,
         matchOn: AREA_CODE,
         view: map.getView().calculateExtent(map.getSize()),
-        worthPlacing: (shape, label) => fitsArea(wrapLabel(String(label.get(NATURE_AREA_NAME) ?? "")), shape, resolution),
+        worthPlacing: (shape, label) => fitsArea(wrapLabel(String(label.get(NATURE_AREA_NAME) ?? "")), shape, resolution, font),
       });
     });
   }
 
-  return { id: "nature-areas", name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
+  return { id: NATURE_AREAS_GROUP, name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
 }

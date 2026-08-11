@@ -42,7 +42,7 @@
     "prepublishOnly": "node -e \"if (!process.env.CI) { throw new Error('Publish only via CI (tag a GitHub Release).'); }\""
   },
   "peerDependencies": {
-    "ol": "^10.0.0",
+    "ol": "^10.3.0",
     "pinia": "^3.0.0",
     "proj4": "^2.19.0",
     "vue": "^3.5.0"

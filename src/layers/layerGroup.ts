@@ -4,13 +4,11 @@ import type { LayerProps } from "./types";
 /**
  * Layers that draw one thing between them and are addressed as one.
  *
- * A thing worth naming on a map is not always a single layer: an outline and the names written over
- * it are two, drawn together, shown and hidden together, and meaningless apart. A group holds them
- * so that neither can be left behind, and so a product has one thing to put in front of a user
- * rather than a pair it has to keep in step itself.
+ * An outline and the names written over it are two layers, shown and hidden together and
+ * meaningless apart, so neither can be left behind.
  */
 export type LayerGroup = {
-  /** Names the group whatever the language, for a product to find it by and for tests to name it. */
+  /** Identifies the group whatever the language, which its translated name cannot. */
   id: string;
   /** What the group is called, already translated. */
   name: string;
