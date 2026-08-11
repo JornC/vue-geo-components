@@ -70,9 +70,15 @@ export {
 } from "./layers/pdok";
 
 // Natura 2000 sites as map points. Fetching them stays with the product.
-export { NATURE_AREA_AUTHORITY, NATURE_AREA_EXTENT, NATURE_AREA_NAME, natureAreaExtent, natureAreasToFeatures } from "./layers/natureAreaFeatures";
-export type { NatureArea } from "./layers/natureAreaFeatures";
-export { natureAreaPointStyle } from "./layers/natureAreaPoints";
+export {
+  NATURE_AREA_AUTHORITY,
+  NATURE_AREA_EXTENT,
+  NATURE_AREA_NAME,
+  natureAreaExtent,
+  natureAreaPointStyle,
+  natureAreasToFeatures,
+} from "./layers/natureAreas";
+export type { NatureArea } from "./layers/natureAreas";
 
 // Layer plumbing.
 export { getMatrixLimitsForLayer } from "./layers/wmtsCapabilities";
@@ -94,8 +100,8 @@ export {
   wrapLabel,
   NATURE_AREA_LABEL_FONT,
   UNDETERMINED,
-} from "./layers/natureAreas";
-export type { NatureAreaLayers, NatureAreaLayersOptions } from "./layers/natureAreas";
+} from "./layers/fameNatureAreas";
+export type { NatureAreaLayers, NatureAreaLayersOptions } from "./layers/fameNatureAreas";
 export type { LabelPlacement } from "./map/labelPlacement";
 
 // Handing a detailed background over to an overview as the map zooms out.

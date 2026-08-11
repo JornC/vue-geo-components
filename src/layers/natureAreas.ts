@@ -1,277 +1,128 @@
-import type Map from "ol/Map.js";
+import Feature from "ol/Feature.js";
 import type { FeatureLike } from "ol/Feature.js";
-import { WMTSCapabilities } from "ol/format.js";
-import { getHeight, getWidth, type Extent } from "ol/extent.js";
-import type VectorLayer from "ol/layer/Vector.js";
-import type VectorTileLayer from "ol/layer/VectorTile.js";
-import { Fill, Style, Text } from "ol/style.js";
-import { createFromCapabilitiesMatrixSet } from "ol/tilegrid/WMTS.js";
-
-import { LABEL_SHAPE, placeLabels } from "../map/labelPlacement";
-import { NATURE_AREA_NAME, natureAreasToFeatures, type NatureArea } from "./natureAreaFeatures";
-import { toStylesMap } from "./layerStyle";
-import { getMatrixLimitsForLayer, type WmtsCapabilitiesJson } from "./wmtsCapabilities";
-import type { LayerGroup } from "./layerGroup";
-import { LegendIconType, LayerType, type EmptyVectorLayerProps, type GeoInformation, type LayerStyleType, type VectorTileLayerProps } from "./types";
+import WKT from "ol/format/WKT.js";
+import type { Extent } from "ol/extent.js";
+import Circle from "ol/style/Circle.js";
+import Fill from "ol/style/Fill.js";
+import Stroke from "ol/style/Stroke.js";
+import Style from "ol/style/Style.js";
+import Text from "ol/style/Text.js";
 
 /**
- * The Natura 2000 areas the FAME platform publishes, as two layers drawn as one thing: the directive
- * areas as vector tiles, and the site names over them.
+ * Natura 2000 sites shown as points on the map.
  *
- * The names are their own layer because the tiles hold a site as one area per directive, clipped
- * into every tile it crosses, so a name put on those is drawn several times over. FAME's nature API
- * publishes one record per site, which is one name.
+ * A site is drawn at its centroid, and picking one flies the map to the site's
+ * bounding box. So a feature here carries a point and four numbers - never the
+ * site's actual boundary. Nothing in this module can outline a site; a product
+ * that needs outlines has to fetch the polygons and render them itself.
  *
- * Where FAME is and which dataset to read are passed in; nothing here reads configuration.
+ * Fetching and caching stays with the product as well: every AERIUS product
+ * reaches a different service for these, and they differ in when the data goes
+ * stale.
  */
 
-const FAME_LAYER = "monitor:natura2000-area-natura2000-directive-areas";
+/** Font for the hover label; Georama is the AERIUS typeface. */
+const LABEL_FONT = "14px Georama, Calibri, sans-serif";
+const AERIUS_DARK_BLUE = "#193884";
 
-/** Identifies the group these layers are handed over as. */
-export const NATURE_AREAS_GROUP = "nature-areas";
+/** Feature property holding a site's extent, as written by {@link natureAreasToFeatures}. */
+export const NATURE_AREA_EXTENT = "extent";
 
-/** Property a tile feature carries its directive in. */
-const DIRECTIVE_CODE = "natura2000_directive_area_code";
+/** Feature property holding a site's name. */
+export const NATURE_AREA_NAME = "name";
 
-/** Property tying a tile feature to the site it belongs to, matching the id the API publishes. */
-const AREA_CODE = "natura2000_area_code";
+/** Feature property holding the authority responsible for a site. */
+export const NATURE_AREA_AUTHORITY = "authority";
 
-/** Not a FAME code: what a feature carrying none falls under. */
-export const UNDETERMINED = "undetermined";
-
-/** No halo, and black rather than a colour, as these sites are drawn elsewhere in AERIUS. */
-export const NATURE_AREA_LABEL_FONT = 'bold 13px "Noto Sans", Helvetica, Arial, sans-serif';
-
-const LABEL_COLOUR = "#000000";
-const LABEL_WRAP_CHARACTERS = 16;
-
-/** Of the font size, averaged over the faces AERIUS draws in. */
-const CHARACTER_WIDTH = 0.55;
-const LINE_HEIGHT = 1.15;
-
-/** How much larger than its site a name may be and still be worth drawing. */
-const LABEL_TO_AREA_RATIO = 1.6;
-
-/** Names declutter among themselves, not against every other decluttered layer. */
-const DECLUTTER_GROUP = "nature-area-labels";
-
-type DirectiveArea = LayerStyleType & { key: string };
-
-const directiveAreas: [DirectiveArea, ...DirectiveArea[]] = [
-  { key: "HR", fillColor: "#f4e798", strokeColor: "#808080" },
-  { key: "VR", fillColor: "#bbddea", strokeColor: "#808080" },
-  { key: "VR+HR", fillColor: "#cfe2a1", strokeColor: "#808080" },
-  { key: UNDETERMINED, fillColor: "#d6b9d2", strokeColor: "#808080" },
-];
-
-const fills = toStylesMap(directiveAreas);
-
-/** An unknown code draws nothing rather than being coloured as some other directive. */
-export function directiveAreaStyle(feature: FeatureLike): Style | null {
-  return fills.get(feature.get(DIRECTIVE_CODE) || UNDETERMINED) ?? null;
-}
-
-/** One entry per directive, in the order they are drawn. Labels are the caller's, already resolved. */
-export function directiveAreaLegend(labels: Record<string, string>): LayerGroup["legend"] {
-  return {
-    iconType: LegendIconType.CIRCLE,
-    items: directiveAreas.map((area) => ({
-      key: area.key,
-      color: area.fillColor,
-      label: labels[area.key] ?? area.key,
-    })),
-  };
-}
-
-/** Breaks on spaces only, so a single long word stays intact rather than being cut mid-name. */
-export function wrapLabel(name: string, maxCharacters: number = LABEL_WRAP_CHARACTERS): string {
-  const lines: string[] = [];
-  let line = "";
-
-  for (const word of name.split(" ")) {
-    if (line === "") {
-      line = word;
-    } else if (line.length + 1 + word.length <= maxCharacters) {
-      line = `${line} ${word}`;
-    } else {
-      lines.push(line);
-      line = word;
-    }
-  }
-  if (line !== "") {
-    lines.push(line);
-  }
-
-  return lines.join("\n");
-}
-
-/** Points of the font, so a caller that changes the font is measured in it rather than in 13px. */
-function fontSize(font: string): number {
-  return Number(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? 13);
-}
-
-function fitsArea(label: string, shape: Extent, resolution: number, font: string): boolean {
-  const lines = label.split("\n");
-  const size = fontSize(font);
-  const width = Math.max(...lines.map((line) => line.length)) * size * CHARACTER_WIDTH;
-
-  return (
-    width <= (getWidth(shape) / resolution) * LABEL_TO_AREA_RATIO &&
-    lines.length * size * LINE_HEIGHT <= (getHeight(shape) / resolution) * LABEL_TO_AREA_RATIO
-  );
-}
-
-function labelStyle(font: string) {
-  return (feature: FeatureLike, resolution: number): Style | undefined => {
-    const name = feature.get(NATURE_AREA_NAME);
-    const shape = feature.get(LABEL_SHAPE) as Extent | undefined;
-    if (!name || !shape) {
-      return undefined;
-    }
-
-    const label = wrapLabel(String(name));
-
-    return fitsArea(label, shape, resolution, font)
-      ? new Style({ text: new Text({ text: label, font, fill: new Fill({ color: LABEL_COLOUR }) }) })
-      : undefined;
-  };
-}
-
-type FameNatureArea = {
+/**
+ * A Natura 2000 site, in the shape this module needs it.
+ *
+ * Both geometries are WKT, which is how AERIUS services publish them. Only the
+ * centroid survives as a geometry - the other is reduced to its bounding box on
+ * the way in and the shape itself is dropped.
+ */
+export type NatureArea = {
   id: string;
   name: string;
-  natura2000AreaInfo?: { centroid?: string; extent?: string; authority?: string };
+  authority?: string;
+  /** Point the site is drawn at. */
+  centroidWkt: string;
+  /** Any geometry covering the site; only its bounding box is kept. */
+  extentWkt: string;
 };
 
-/** The sites FAME's nature API publishes, one record each. */
-export async function fetchNatureAreas(host: string, dataset: string): Promise<NatureArea[]> {
-  const response = await fetch(`${host}/api/nature/${dataset}/natura2000-areas`);
-  if (!response.ok) {
-    throw new Error(`FAME nature areas returned ${response.status}`);
-  }
-
-  const areas = (await response.json()) as FameNatureArea[];
-
-  const usable = areas.filter((area) => area.natura2000AreaInfo?.centroid && area.natura2000AreaInfo.extent);
-  for (const area of areas.filter((area) => !usable.includes(area))) {
-    // Loud, because a site missing from the map is otherwise indistinguishable from one that is
-    // not in the data at all.
-    console.warn(`Skipping Natura 2000 site ${area.id}: it has no centroid or extent.`);
-  }
-
-  return usable.map((area) => ({
-    id: area.id,
-    name: area.name,
-    authority: area.natura2000AreaInfo?.authority,
-    centroidWkt: area.natura2000AreaInfo?.centroid as string,
-    extentWkt: area.natura2000AreaInfo?.extent as string,
-  }));
-}
-
-function wmtsUrl(host: string): string {
-  return `${host}/geoserver/gwc/service/wmts`;
-}
-
-async function readCapabilities(host: string): Promise<WmtsCapabilitiesJson> {
-  const response = await fetch(`${wmtsUrl(host)}?service=WMTS&version=1.1.0&request=GetCapabilities`);
-  if (!response.ok) {
-    throw new Error(`FAME WMTS capabilities returned ${response.status}`);
-  }
-  return new WMTSCapabilities().read(await response.text()) as WmtsCapabilitiesJson;
-}
-
-function matrixSetFor(capabilities: WmtsCapabilitiesJson, epsgCode: string): Record<string, unknown> {
-  const matrixSet = capabilities.Contents.TileMatrixSet.find((set) => set.Identifier === epsgCode);
-  if (!matrixSet) {
-    throw new Error(`FAME does not publish tiles in ${epsgCode}`);
-  }
-  return matrixSet;
-}
-
-export type NatureAreaLayersOptions = {
-  /** Base URL of the FAME platform. */
-  host: string;
-  /** FAME schema to read. GeoServer falls back to `none` without it, which fails. */
-  dataset: string;
-  /** Only what the tile grid needs: the projection to ask FAME for, and the extent it covers. */
-  geo: Pick<GeoInformation, "epsgCode" | "extent">;
-  /** Shown for the layer, already translated. */
-  name: string;
-  /** Legend label per directive code, already translated. */
-  legendLabels: Record<string, string>;
-  font?: string;
-};
-
-export type NatureAreaLayers = LayerGroup & {
-  /**
-   * Puts the names on their layer and keeps each one on the outline it names. Call once the layers
-   * are on the map, since an empty vector layer has no source before that.
-   */
-  ready: (map: Map) => void;
-};
+const wkt = new WKT();
 
 /**
- * Reads what FAME publishes and builds both layers. The tile grid comes from FAME's own capabilities
- * document, so the descriptor cannot be built before that has been fetched.
+ * Turn sites into features ready for a vector source.
+ *
+ * Sites whose geometry cannot be read are logged and skipped rather than failing
+ * the whole batch - one malformed record should not empty the map.
  */
-export async function createNatureAreaLayers({
-  host,
-  dataset,
-  geo,
-  name,
-  legendLabels,
-  font = NATURE_AREA_LABEL_FONT,
-}: NatureAreaLayersOptions): Promise<NatureAreaLayers> {
-  const [capabilities, areas] = await Promise.all([readCapabilities(host), fetchNatureAreas(host, dataset)]);
-  const matrixLimits = getMatrixLimitsForLayer(capabilities, FAME_LAYER, geo.epsgCode);
-  const viewParams = encodeURIComponent(`dataset:${dataset}`);
+export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
+  const features: Feature[] = [];
 
-  const tiles: VectorTileLayerProps = {
-    name,
-    type: LayerType.VECTOR_TILE,
-    url:
-      `${wmtsUrl(host)}?service=WMTS&version=1.1.0&request=GetTile` +
-      `&tilecol={x}&tilerow={y}&format=application%2Fvnd.mapbox-vector-tile&viewparams={ViewParams}` +
-      `&LAYER=${encodeURI(FAME_LAYER)}&tilematrixset=${geo.epsgCode}&tilematrix=${geo.epsgCode}:{z}`,
-    viewParams: () => viewParams,
-    tileGrid: createFromCapabilitiesMatrixSet(matrixSetFor(capabilities, geo.epsgCode), geo.extent, matrixLimits),
-    matrixLimits,
-    visibility: true,
-    opacity: 1,
-    styleFunction: directiveAreaStyle,
-  };
-
-  const names: EmptyVectorLayerProps = {
-    name: `${name} names`,
-    type: LayerType.EMPTY_VECTOR_LAYER,
-    visibility: true,
-    opacity: 1,
-    styleFunction: labelStyle(font),
-  };
-
-  function ready(map: Map): void {
-    const labels = names.layerRef as VectorLayer | undefined;
-    const shapes = tiles.layerRef as VectorTileLayer | undefined;
-    if (!labels || !shapes) {
-      throw new Error("The nature area layers have to be on the map before their names can be placed");
+  for (const area of areas) {
+    try {
+      const feature = new Feature(wkt.readGeometry(area.centroidWkt));
+      feature.setId(area.id);
+      feature.set(NATURE_AREA_NAME, area.name);
+      feature.set(NATURE_AREA_AUTHORITY, area.authority);
+      feature.set(NATURE_AREA_EXTENT, wkt.readGeometry(area.extentWkt).getExtent());
+      features.push(feature);
+    } catch (error) {
+      // Unreadable geometry: skip this site, keep the rest. Loud, because a site
+      // missing from the map is otherwise indistinguishable from one that is not
+      // in the data at all.
+      console.warn(`Skipping Natura 2000 site ${area.id}: geometry could not be read.`, error);
     }
-
-    labels.setDeclutter(DECLUTTER_GROUP);
-    labels.getSource()?.addFeatures(natureAreasToFeatures(areas));
-
-    // A name stands on the outline it names, which is only known once that outline is drawn.
-    map.on("rendercomplete", () => {
-      const resolution = map.getView().getResolution() ?? 0;
-
-      placeLabels({
-        labels,
-        shapes,
-        matchOn: AREA_CODE,
-        view: map.getView().calculateExtent(map.getSize()),
-        worthPlacing: (shape, label) => fitsArea(wrapLabel(String(label.get(NATURE_AREA_NAME) ?? "")), shape, resolution, font),
-      });
-    });
   }
 
-  return { id: NATURE_AREAS_GROUP, name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
+  return features;
+}
+
+/** The extent stored on a site feature, if it has one. */
+export function natureAreaExtent(feature: FeatureLike | undefined): Extent | undefined {
+  return feature?.get(NATURE_AREA_EXTENT) as Extent | undefined;
+}
+
+const defaultStyle = new Style({
+  image: new Circle({
+    radius: 5,
+    fill: new Fill({ color: AERIUS_DARK_BLUE }),
+  }),
+});
+
+function hoverStyle(name: string): Style[] {
+  return [
+    new Style({
+      image: new Circle({
+        radius: 8,
+        fill: new Fill({ color: "#fff" }),
+        stroke: new Stroke({ color: "#d4ecf5", width: 3 }),
+      }),
+    }),
+    defaultStyle,
+    new Style({
+      text: new Text({
+        text: name,
+        font: LABEL_FONT,
+        fill: new Fill({ color: "#fff" }),
+        backgroundFill: new Fill({ color: AERIUS_DARK_BLUE }),
+        backgroundStroke: new Stroke({ color: "#fff", width: 3 }),
+        padding: [4, 4, 4, 4],
+        offsetY: -25,
+      }),
+    }),
+  ];
+}
+
+/**
+ * Style for a Natura 2000 site point: a dot, or a labelled marker when hovered.
+ *
+ * Whether a feature counts as hovered is the caller's to decide, since that
+ * lives in product state rather than on the feature.
+ */
+export function natureAreaPointStyle(feature: FeatureLike, hovered: boolean = false): Style | Style[] {
+  return hovered ? hoverStyle(String(feature.get(NATURE_AREA_NAME) ?? "")) : defaultStyle;
 }
