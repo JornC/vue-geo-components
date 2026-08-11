@@ -1,0 +1,272 @@
+import type Map from "ol/Map.js";
+import type { FeatureLike } from "ol/Feature.js";
+import { WMTSCapabilities } from "ol/format.js";
+import { getHeight, getWidth, type Extent } from "ol/extent.js";
+import type VectorLayer from "ol/layer/Vector.js";
+import type VectorTileLayer from "ol/layer/VectorTile.js";
+import { Fill, Style, Text } from "ol/style.js";
+import { createFromCapabilitiesMatrixSet } from "ol/tilegrid/WMTS.js";
+
+import { LABEL_SHAPE, placeLabels } from "../map/labelPlacement";
+import { NATURE_AREA_NAME, natureAreasToFeatures, type NatureArea } from "./natureAreaPoints";
+import { toStylesMap } from "./layerStyle";
+import { getMatrixLimitsForLayer, type WmtsCapabilitiesJson } from "./wmtsCapabilities";
+import type { LegendDisplay } from "../components/legendDisplay";
+import {
+  LegendIconType,
+  LayerType,
+  type EmptyVectorLayerProps,
+  type GeoInformation,
+  type LayerProps,
+  type LayerStyleType,
+  type VectorTileLayerProps,
+} from "./types";
+
+/**
+ * The Natura 2000 areas the FAME platform publishes, as two layers drawn as one thing: the directive
+ * areas as vector tiles, and the site names over them.
+ *
+ * The names are their own layer because the tiles hold a site as one area per directive, clipped
+ * into every tile it crosses, so a name put on those is drawn several times over. FAME's nature API
+ * publishes one record per site, which is one name.
+ *
+ * Where FAME is and which dataset to read are the caller's to say. Nothing here reads configuration.
+ */
+
+const FAME_LAYER = "monitor:natura2000-area-natura2000-directive-areas";
+
+/** Property a tile feature carries its directive in. */
+const DIRECTIVE_CODE = "natura2000_directive_area_code";
+
+/** Property tying a tile feature to the site it belongs to, matching the id the API publishes. */
+const AREA_CODE = "natura2000_area_code";
+
+/** Not a FAME code: what a feature carrying none falls under. */
+export const UNDETERMINED = "undetermined";
+
+/** As calculator draws these same sites: bold, black, no halo. */
+export const NATURE_AREA_LABEL_FONT = 'bold 13px "Noto Sans", Helvetica, Arial, sans-serif';
+
+const LABEL_COLOUR = "#000000";
+const LABEL_WRAP_CHARACTERS = 16;
+const LABEL_CHARACTER_WIDTH = 7.2;
+const LABEL_LINE_HEIGHT = 15;
+
+/** How much larger than its site a name may be and still be worth drawing. */
+const LABEL_TO_AREA_RATIO = 1.6;
+
+/** Names declutter among themselves, not against every other decluttered layer. */
+const DECLUTTER_GROUP = "nature-area-labels";
+
+type DirectiveArea = LayerStyleType & { key: string };
+
+const directiveAreas: [DirectiveArea, ...DirectiveArea[]] = [
+  { key: "HR", fillColor: "#f4e798", strokeColor: "#808080" },
+  { key: "VR", fillColor: "#bbddea", strokeColor: "#808080" },
+  { key: "VR+HR", fillColor: "#cfe2a1", strokeColor: "#808080" },
+  { key: UNDETERMINED, fillColor: "#d6b9d2", strokeColor: "#808080" },
+];
+
+const fills = toStylesMap(directiveAreas);
+
+/** An unknown code draws nothing rather than being coloured as some other directive. */
+export function directiveAreaStyle(feature: FeatureLike): Style | null {
+  return fills.get(feature.get(DIRECTIVE_CODE) ?? UNDETERMINED) ?? null;
+}
+
+/** One entry per directive, in the order they are drawn. Labels are the caller's, already resolved. */
+export function directiveAreaLegend(labels: Record<string, string>): LegendDisplay {
+  return {
+    iconType: LegendIconType.CIRCLE,
+    items: directiveAreas.map((area) => ({
+      key: area.key,
+      color: area.fillColor,
+      label: labels[area.key] ?? area.key,
+    })),
+  };
+}
+
+/** Breaks on spaces only, so a single long word stays intact rather than being cut mid-name. */
+export function wrapLabel(name: string, maxCharacters: number = LABEL_WRAP_CHARACTERS): string {
+  const lines: string[] = [];
+  let line = "";
+
+  for (const word of name.split(" ")) {
+    if (line === "") {
+      line = word;
+    } else if (line.length + 1 + word.length <= maxCharacters) {
+      line = `${line} ${word}`;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+  }
+  if (line !== "") {
+    lines.push(line);
+  }
+
+  return lines.join("\n");
+}
+
+function fitsArea(label: string, shape: Extent, resolution: number): boolean {
+  const lines = label.split("\n");
+  const width = Math.max(...lines.map((line) => line.length)) * LABEL_CHARACTER_WIDTH;
+
+  return (
+    width <= (getWidth(shape) / resolution) * LABEL_TO_AREA_RATIO &&
+    lines.length * LABEL_LINE_HEIGHT <= (getHeight(shape) / resolution) * LABEL_TO_AREA_RATIO
+  );
+}
+
+function labelStyle(font: string) {
+  return (feature: FeatureLike, resolution: number): Style | undefined => {
+    const name = feature.get(NATURE_AREA_NAME);
+    const shape = feature.get(LABEL_SHAPE) as Extent | undefined;
+    if (!name || !shape) {
+      return undefined;
+    }
+
+    const label = wrapLabel(String(name));
+
+    return fitsArea(label, shape, resolution)
+      ? new Style({ text: new Text({ text: label, font, fill: new Fill({ color: LABEL_COLOUR }) }) })
+      : undefined;
+  };
+}
+
+type FameNatureArea = {
+  id: string;
+  name: string;
+  natura2000AreaInfo?: { centroid?: string; extent?: string; authority?: string };
+};
+
+/** The sites FAME's nature API publishes, one record each. */
+export async function fetchNatureAreas(host: string, dataset: string): Promise<NatureArea[]> {
+  const response = await fetch(`${host}/api/nature/${dataset}/natura2000-areas`);
+  if (!response.ok) {
+    throw new Error(`FAME nature areas returned ${response.status}`);
+  }
+
+  const areas = (await response.json()) as FameNatureArea[];
+
+  return areas
+    .filter((area) => area.natura2000AreaInfo?.centroid && area.natura2000AreaInfo.extent)
+    .map((area) => ({
+      id: area.id,
+      name: area.name,
+      authority: area.natura2000AreaInfo?.authority,
+      centroidWkt: area.natura2000AreaInfo?.centroid as string,
+      extentWkt: area.natura2000AreaInfo?.extent as string,
+    }));
+}
+
+function wmtsUrl(host: string): string {
+  return `${host}/geoserver/gwc/service/wmts`;
+}
+
+async function readCapabilities(host: string): Promise<WmtsCapabilitiesJson> {
+  const response = await fetch(`${wmtsUrl(host)}?service=WMTS&version=1.1.0&request=GetCapabilities`);
+  if (!response.ok) {
+    throw new Error(`FAME WMTS capabilities returned ${response.status}`);
+  }
+  return new WMTSCapabilities().read(await response.text()) as WmtsCapabilitiesJson;
+}
+
+function matrixSetFor(capabilities: WmtsCapabilitiesJson, epsgCode: string): Record<string, unknown> {
+  const matrixSet = capabilities.Contents.TileMatrixSet.find((set) => set.Identifier === epsgCode);
+  if (!matrixSet) {
+    throw new Error(`FAME does not publish tiles in ${epsgCode}`);
+  }
+  return matrixSet;
+}
+
+export type NatureAreaLayersOptions = {
+  /** Base URL of the FAME platform. */
+  host: string;
+  /** FAME schema to read. GeoServer falls back to `none` without it, which fails. */
+  dataset: string;
+  /** Only what the tile grid needs: the projection to ask FAME for, and the extent it covers. */
+  geo: Pick<GeoInformation, "epsgCode" | "extent">;
+  /** Shown for the layer, already translated. */
+  name: string;
+  /** Legend label per directive code, already translated. */
+  legendLabels: Record<string, string>;
+  font?: string;
+};
+
+export type NatureAreaLayers = {
+  /** In draw order: the directive areas, then the names over them. */
+  layers: LayerProps[];
+  legend: LegendDisplay;
+  /**
+   * Puts the names on their layer and keeps each one on the outline it names. Call once the layers
+   * are on the map, since an empty vector layer has no source before that.
+   */
+  ready: (map: Map) => void;
+};
+
+/**
+ * Reads what FAME publishes and builds both layers. The tile grid comes from FAME's own capabilities
+ * document, so the descriptor cannot be built before that has been fetched.
+ */
+export async function createNatureAreaLayers({
+  host,
+  dataset,
+  geo,
+  name,
+  legendLabels,
+  font = NATURE_AREA_LABEL_FONT,
+}: NatureAreaLayersOptions): Promise<NatureAreaLayers> {
+  const [capabilities, areas] = await Promise.all([readCapabilities(host), fetchNatureAreas(host, dataset)]);
+  const matrixLimits = getMatrixLimitsForLayer(capabilities, FAME_LAYER, geo.epsgCode);
+  const viewParams = encodeURIComponent(`dataset:${dataset}`);
+
+  const tiles: VectorTileLayerProps = {
+    name,
+    type: LayerType.VECTOR_TILE,
+    url:
+      `${wmtsUrl(host)}?service=WMTS&version=1.1.0&request=GetTile` +
+      `&tilecol={x}&tilerow={y}&format=application%2Fvnd.mapbox-vector-tile&viewparams={ViewParams}` +
+      `&LAYER=${encodeURI(FAME_LAYER)}&tilematrixset=${geo.epsgCode}&tilematrix=${geo.epsgCode}:{z}`,
+    viewParams: () => viewParams,
+    tileGrid: createFromCapabilitiesMatrixSet(matrixSetFor(capabilities, geo.epsgCode), geo.extent, matrixLimits),
+    matrixLimits,
+    visibility: true,
+    opacity: 1,
+    styleFunction: directiveAreaStyle,
+  };
+
+  const names: EmptyVectorLayerProps = {
+    name: `${name} names`,
+    type: LayerType.EMPTY_VECTOR_LAYER,
+    visibility: true,
+    opacity: 1,
+    styleFunction: labelStyle(font),
+  };
+
+  function ready(map: Map): void {
+    const labels = names.layerRef as VectorLayer | undefined;
+    const shapes = tiles.layerRef as VectorTileLayer | undefined;
+    if (!labels || !shapes) {
+      throw new Error("The nature area layers have to be on the map before their names can be placed");
+    }
+
+    labels.setDeclutter(DECLUTTER_GROUP);
+    labels.getSource()?.addFeatures(natureAreasToFeatures(areas));
+
+    // A name stands on the outline it names, which is only known once that outline is drawn.
+    map.on("rendercomplete", () => {
+      const resolution = map.getView().getResolution() ?? 0;
+
+      placeLabels({
+        labels,
+        shapes,
+        matchOn: AREA_CODE,
+        view: map.getView().calculateExtent(map.getSize()),
+        worthPlacing: (shape, label) => fitsArea(wrapLabel(String(label.get(NATURE_AREA_NAME) ?? "")), shape, resolution),
+      });
+    });
+  }
+
+  return { layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
+}
