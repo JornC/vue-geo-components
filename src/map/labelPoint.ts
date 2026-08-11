@@ -1,6 +1,5 @@
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, polygon as turfPolygon } from "@turf/helpers";
-import pointToPolygonDistance from "@turf/point-to-polygon-distance";
 import simplify from "@turf/simplify";
 import type { Coordinate } from "ol/coordinate.js";
 import type Polygon from "ol/geom/Polygon.js";
@@ -14,9 +13,9 @@ import type Polygon from "ol/geom/Polygon.js";
  * inside by definition and the roomiest place to put words. GeoServer picks its labels on the same
  * principle, which is why calculator's names sit where they do.
  *
- * Candidates are laid out on a grid and the one with the most room around it wins. The grid is
- * plain arithmetic; both geometric questions - is this inside, and how far from the edge - are
- * turf's to answer.
+ * Candidates are laid out on a grid and the one with the most room around it wins. turf answers
+ * whether a candidate is inside and does the simplifying; how far it sits from the nearest edge is
+ * worked out here, because turf's answer to that is wrong on a projected grid. See below.
  */
 
 /**
@@ -35,9 +34,64 @@ const CANDIDATES_PER_AXIS = 12;
  */
 const DETAIL_TO_DROP = 1 / 2000;
 
+/**
+ * Holes narrower than this, in projected metres, are left out of the search.
+ *
+ * Simplifying cannot touch them: a ring needs four points to stay a ring, so a shape riddled with
+ * small holes has a floor no tolerance gets under. The Veluwe is one outer ring and 739 holes -
+ * villages, farms and roads inside the forest - and however coarse the tolerance, 736 of them sit at
+ * that floor. That is most of the work, for holes under a pixel at the zooms a name is drawn at.
+ *
+ * No larger than this: on a river system the holes are the shape, and dropping 250 metre ones moves
+ * Rijntakken's name the better part of a kilometre.
+ */
+const HOLE_TOO_SMALL_TO_MATTER = 100;
+
 type Best = { at: Coordinate; room: number };
 
+/**
+ * How far a point is from the nearest edge, in the units the coordinates are in.
+ *
+ * turf cannot answer this one. Its point-to-polygon distance reads coordinates as degrees of
+ * longitude and latitude and converts the result to a length, so on a projected grid such as RD it
+ * wraps the globe several times over and returns numbers that do not even rank correctly: in a
+ * square kilometre it scores a point 77 metres from the edge above one 250 metres from it. Its
+ * planar option only changes how a line is measured, not what the coordinates are taken to be.
+ */
+function distanceToNearestEdge(at: Coordinate, rings: Coordinate[][]): number {
+  const [x, y] = at as [number, number];
+  let nearest = Number.POSITIVE_INFINITY;
+
+  for (const ring of rings) {
+    for (let i = 0; i + 1 < ring.length; i++) {
+      const [x1, y1] = ring[i] as [number, number];
+      const [x2, y2] = ring[i + 1] as [number, number];
+      const runX = x2 - x1;
+      const runY = y2 - y1;
+      const lengthSquared = runX * runX + runY * runY;
+
+      // How far along the edge the closest point lies, clamped to the edge itself.
+      const along = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, ((x - x1) * runX + (y - y1) * runY) / lengthSquared));
+      const toX = x - (x1 + along * runX);
+      const toY = y - (y1 + along * runY);
+
+      nearest = Math.min(nearest, Math.hypot(toX, toY));
+    }
+  }
+
+  return nearest;
+}
+
+/** The width or height of a ring, whichever is greater. */
+function across(ring: Coordinate[]): number {
+  const xs = ring.map((position) => position[0] as number);
+  const ys = ring.map((position) => position[1] as number);
+
+  return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+}
+
 function roomiest(outline: ReturnType<typeof turfPolygon>, within: number[], perAxis: number): Best | undefined {
+  const rings = outline.geometry.coordinates as Coordinate[][];
   const [minX, minY, maxX, maxY] = within as [number, number, number, number];
   let best: Best | undefined;
 
@@ -50,9 +104,7 @@ function roomiest(outline: ReturnType<typeof turfPolygon>, within: number[], per
         continue;
       }
 
-      // Planar, because these are projected metres rather than degrees. The distance is only ever
-      // compared against another from the same shape, so its unit does not matter.
-      const room = Math.abs(pointToPolygonDistance(candidate, outline, { method: "planar" }));
+      const room = distanceToNearestEdge(at, rings);
 
       if (best === undefined || room > best.room) {
         best = { at, room };
@@ -80,7 +132,8 @@ export function labelPoint(shape: Polygon): Coordinate | undefined {
 
   const [minX, minY, maxX, maxY] = shape.getExtent() as [number, number, number, number];
   const span = Math.max(maxX - minX, maxY - minY);
-  const outline = simplify(turfPolygon(rings), { tolerance: span * DETAIL_TO_DROP, highQuality: false });
+  const worthKeeping = [rings[0] as Coordinate[], ...rings.slice(1).filter((hole) => across(hole) >= HOLE_TOO_SMALL_TO_MATTER)];
+  const outline = simplify(turfPolygon(worthKeeping), { tolerance: span * DETAIL_TO_DROP, highQuality: false });
 
   return roomiest(outline, [minX, minY, maxX, maxY], CANDIDATES_PER_AXIS)?.at;
 }

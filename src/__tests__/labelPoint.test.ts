@@ -49,20 +49,21 @@ describe("Label point", () => {
   });
 
   it("Avoids a hole in the middle", () => {
+    // Metres: a hole has to be big enough to be worth avoiding, and this one is 400 across.
     const ringed = new Polygon([
       [
         [0, 0],
-        [10, 0],
-        [10, 10],
-        [0, 10],
+        [1000, 0],
+        [1000, 1000],
+        [0, 1000],
         [0, 0],
       ],
       [
-        [3, 3],
-        [7, 3],
-        [7, 7],
-        [3, 7],
-        [3, 3],
+        [300, 300],
+        [700, 300],
+        [700, 700],
+        [300, 700],
+        [300, 300],
       ],
     ]);
 
@@ -104,5 +105,49 @@ describe("Label point", () => {
     ]);
 
     expect(labelPoint(sliver), "A flat sliver has no inside to put a name in").toBeUndefined();
+  });
+
+  it("Ignores a hole too small to be seen", () => {
+    // Ten metres across, in the middle of a square kilometre. The Veluwe carries 739 such holes -
+    // villages and farms - and weighing every candidate against them is most of the work.
+    const pinprick = new Polygon([
+      [
+        [0, 0],
+        [1000, 0],
+        [1000, 1000],
+        [0, 1000],
+        [0, 0],
+      ],
+      [
+        [495, 495],
+        [505, 495],
+        [505, 505],
+        [495, 505],
+        [495, 495],
+      ],
+    ]);
+
+    const point = labelPoint(pinprick) as [number, number];
+
+    expect(point[0], "A ten metre hole should not shove the name aside").toBeGreaterThan(400);
+    expect(point[0], "A ten metre hole should not shove the name aside").toBeLessThan(600);
+  });
+
+  it("Puts the point where there is most room, not merely inside", () => {
+    const square = new Polygon([
+      [
+        [0, 0],
+        [1000, 0],
+        [1000, 1000],
+        [0, 1000],
+        [0, 0],
+      ],
+    ]);
+
+    const [x, y] = labelPoint(square) as [number, number];
+
+    // turf's own point-to-polygon distance reads these as degrees and ranks them wrongly, which put
+    // the name of an empty square nearer its corner than its middle.
+    expect(Math.hypot(x - 500, y - 500), "The middle of a square is where a name has most room").toBeLessThan(100);
   });
 });
