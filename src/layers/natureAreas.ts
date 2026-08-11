@@ -257,5 +257,5 @@ export async function createNatureAreaLayers({
     });
   }
 
-  return { name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
+  return { id: "nature-areas", name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
 }

@@ -10,6 +10,8 @@ import type { LayerProps } from "./types";
  * rather than a pair it has to keep in step itself.
  */
 export type LayerGroup = {
+  /** Names the group whatever the language, for a product to find it by and for tests to name it. */
+  id: string;
   /** What the group is called, already translated. */
   name: string;
   /** In draw order, bottom to top. */
