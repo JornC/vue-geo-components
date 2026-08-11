@@ -1,7 +1,7 @@
 import { Polygon } from "ol/geom.js";
 import { describe, expect, it } from "vitest";
 
-import { labelPoint } from "@/map/labelPoint";
+import { labelPoint } from "@/map/labelPlacement";
 
 /** True when the point is inside the shape, which is the whole promise of this function. */
 function inside(polygon: Polygon, point: [number, number] | undefined): boolean {
