@@ -75,8 +75,8 @@ export {
   natureAreaExtent,
   natureAreaPointStyle,
   natureAreasToFeatures,
-} from "./layers/natureAreas";
-export type { NatureArea } from "./layers/natureAreas";
+} from "./layers/natureAreaPoints";
+export type { NatureArea } from "./layers/natureAreaPoints";
 
 // Layer plumbing.
 export { getMatrixLimitsForLayer } from "./layers/wmtsCapabilities";

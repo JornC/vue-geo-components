@@ -9,7 +9,7 @@ import {
   natureAreaPointStyle,
   natureAreasToFeatures,
   type NatureArea,
-} from "@/layers/natureAreas";
+} from "@/layers/natureAreaPoints";
 
 const area: NatureArea = {
   id: "1",
