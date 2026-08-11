@@ -1,6 +1,7 @@
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, polygon as turfPolygon } from "@turf/helpers";
 import pointToPolygonDistance from "@turf/point-to-polygon-distance";
+import simplify from "@turf/simplify";
 import type { Coordinate } from "ol/coordinate.js";
 import type Polygon from "ol/geom/Polygon.js";
 
@@ -18,8 +19,49 @@ import type Polygon from "ol/geom/Polygon.js";
  * turf's to answer.
  */
 
-/** Candidates per axis. Finer finds a slightly better spot for a lot more work. */
+/**
+ * Candidates per axis. Coarser is quicker but picks the wrong part of a shape with several open
+ * areas: at eight the Veluwe's name moved five kilometres, into a different stretch of forest.
+ */
 const CANDIDATES_PER_AXIS = 12;
+
+/**
+ * How much of the shape's own size counts as detail worth dropping first.
+ *
+ * A nature area can arrive with tens of thousands of points, and every candidate is weighed against
+ * every edge, so the detail is what makes this slow. None of it moves the answer: at a two-thousandth
+ * of the shape's width the point shifts by a few metres, which is a fraction of a pixel at any zoom
+ * where a name is drawn.
+ */
+const DETAIL_TO_DROP = 1 / 2000;
+
+type Best = { at: Coordinate; room: number };
+
+function roomiest(outline: ReturnType<typeof turfPolygon>, within: number[], perAxis: number): Best | undefined {
+  const [minX, minY, maxX, maxY] = within as [number, number, number, number];
+  let best: Best | undefined;
+
+  for (let column = 1; column <= perAxis; column++) {
+    for (let row = 1; row <= perAxis; row++) {
+      const at: Coordinate = [minX + ((maxX - minX) * column) / (perAxis + 1), minY + ((maxY - minY) * row) / (perAxis + 1)];
+      const candidate = point(at);
+
+      if (!booleanPointInPolygon(candidate, outline)) {
+        continue;
+      }
+
+      // Planar, because these are projected metres rather than degrees. The distance is only ever
+      // compared against another from the same shape, so its unit does not matter.
+      const room = Math.abs(pointToPolygonDistance(candidate, outline, { method: "planar" }));
+
+      if (best === undefined || room > best.room) {
+        best = { at, room };
+      }
+    }
+  }
+
+  return best;
+}
 
 export function labelPoint(shape: Polygon): Coordinate | undefined {
   const rings = shape.getCoordinates();
@@ -36,37 +78,9 @@ export function labelPoint(shape: Polygon): Coordinate | undefined {
     return undefined;
   }
 
-  const outline = turfPolygon(rings);
-  const extent = shape.getExtent();
-  const minX = extent[0];
-  const minY = extent[1];
-  const maxX = extent[2];
-  const maxY = extent[3];
+  const [minX, minY, maxX, maxY] = shape.getExtent() as [number, number, number, number];
+  const span = Math.max(maxX - minX, maxY - minY);
+  const outline = simplify(turfPolygon(rings), { tolerance: span * DETAIL_TO_DROP, highQuality: false });
 
-  if (minX === undefined || minY === undefined || maxX === undefined || maxY === undefined) {
-    return undefined;
-  }
-
-  let best: { at: Coordinate; room: number } | undefined;
-
-  for (let column = 1; column <= CANDIDATES_PER_AXIS; column++) {
-    for (let row = 1; row <= CANDIDATES_PER_AXIS; row++) {
-      const at: Coordinate = [minX + ((maxX - minX) * column) / (CANDIDATES_PER_AXIS + 1), minY + ((maxY - minY) * row) / (CANDIDATES_PER_AXIS + 1)];
-      const candidate = point(at);
-
-      if (!booleanPointInPolygon(candidate, outline)) {
-        continue;
-      }
-
-      // Planar, because these are RD metres rather than degrees. The distance is only ever compared
-      // against another from the same call, so whatever the unit works out as does not matter.
-      const room = Math.abs(pointToPolygonDistance(candidate, outline, { method: "planar" }));
-
-      if (best === undefined || room > best.room) {
-        best = { at, room };
-      }
-    }
-  }
-
-  return best?.at;
+  return roomiest(outline, [minX, minY, maxX, maxY], CANDIDATES_PER_AXIS)?.at;
 }
