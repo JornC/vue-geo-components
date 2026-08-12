@@ -13,22 +13,24 @@ import RenderFeature, { toGeometry } from "ol/render/Feature.js";
 
 /**
  * Standing a name on the shape it belongs to, using the outlines a vector tile layer is drawing.
- *
  * Names live on their own layer, one point per thing named, because a tile layer holds a shape as
- * one polygon per tile it crosses and would draw the name once per piece. `placeLabels` matches a
- * name to its shape by feature id, takes the biggest piece of that shape on screen, and moves the
- * name to where it reads best in it. Call it once the map has finished drawing, since that is when
- * the outlines are known.
+ * one polygon per tile it crosses and would draw the name once per piece.
  *
- * Where a name reads best is the point with the most room around it, which `labelPoint` searches
- * for. A centroid will not serve: the centroid of a crescent or a river system falls outside its
- * own shape. So the shape is stripped of its fine detail and of its holes, a grid of candidates is
- * laid over its extent, and the candidate that lies inside the shape and furthest from any edge
- * wins. That distance is measured here rather than with turf, whose point-to-polygon distance reads
- * coordinates as degrees and so does not even rank projected ones in the right order.
+ * What a placed name has to be:
+ * - One per thing named, however many pieces its shape arrives in.
+ * - Inside its own shape. A centroid will not serve: the centroid of a crescent or a river system
+ *   falls outside the shape it belongs to.
+ * - Standing where that shape has most room for it, so the name reads as belonging to it.
  *
- * Each name remembers the extent it was last considered for, so the redraw that follows a placement
- * does not set the whole search going again.
+ * How `placeLabels` gets there, for each name, once the map has finished drawing:
+ * - Match the name to its shape by feature id, and take the biggest piece of it on screen.
+ * - Strip that piece of its fine detail and of its holes.
+ * - Lay a grid of candidates over its extent, and keep the ones that fall inside it.
+ * - Put the name on the candidate furthest from any edge. That distance is measured here rather
+ *   than with turf, whose point-to-polygon distance reads coordinates as degrees and so does not
+ *   even rank projected ones in the right order.
+ * - Remember the extent the name was last considered for, so the redraw that follows does not set
+ *   the whole search going again.
  */
 
 /** Extent of the shape a name stands on, and the sign that it has one to stand on at all. */
