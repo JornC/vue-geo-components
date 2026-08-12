@@ -1,6 +1,10 @@
 import type { FeatureLike } from "ol/Feature.js";
 
 /**
+ * Helpers for turning raw map interaction into something a product can act on.
+ */
+
+/**
  * Handle a click on the map by picking the first feature that carries a given
  * property, and handing it to the caller.
  *
