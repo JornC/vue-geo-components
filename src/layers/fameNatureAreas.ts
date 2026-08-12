@@ -273,5 +273,5 @@ export async function createNatureAreaLayers({
     });
   }
 
-  return { id: NATURE_AREAS_GROUP, name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
+  return { key: NATURE_AREAS_GROUP, name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
 }

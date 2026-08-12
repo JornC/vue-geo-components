@@ -9,7 +9,7 @@ import type { LayerProps } from "./types";
  */
 export type LayerGroup = {
   /** Identifies the group whatever the language, which its translated name cannot. */
-  id: string;
+  key: string;
   /** What the group is called, already translated. */
   name: string;
   /** In draw order, bottom to top. */
