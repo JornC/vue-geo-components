@@ -37,6 +37,8 @@ export type {
   ExtendedLegendProps,
   Datum,
 } from "./layers/types";
+export { nearestFeatureHover } from "./layers/hover";
+export type { HoverContext, HoverResolver } from "./layers/hover";
 export { CombinedLayers } from "./layers/combinedLayers";
 export { createLayer } from "./layers/createLayer";
 export { toLegendStyleValues, toStylesMap, findStyleKey } from "./layers/layerStyle";

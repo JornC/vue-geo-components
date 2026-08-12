@@ -3,6 +3,8 @@ import type Layer from "ol/layer/Layer.js";
 import type { Projection } from "ol/proj.js";
 import type WMTSTileGrid from "ol/tilegrid/WMTS.js";
 
+import type { HoverResolver } from "./hover";
+
 export type GeoInformation = {
   epsgCode: string;
   extent: number[];
@@ -47,6 +49,12 @@ export interface LayerBaseProps {
   hoverableFunction?: () => boolean;
   onUnHover?: () => void;
   onClick?: (feature: FeatureLike) => void;
+
+  /* How this layer answers what the pointer is over. Left out, the map hit tests it. */
+  hover?: HoverResolver;
+
+  /* The name to show while a feature of this layer is hovered. */
+  hoverLabel?: (feature: FeatureLike) => string | undefined;
 
   // Matches OpenLayers' own StyleFunction: it always passes the resolution, so
   // a style is free to depend on it without guarding.
