@@ -188,6 +188,66 @@ function matrixSetFor(capabilities: WmtsCapabilitiesJson, epsgCode: string): Rec
   return matrixSet;
 }
 
+export type NatureAreaLabelsOptions = {
+  /** Shown for the layer, already translated. */
+  name: string;
+  font?: string;
+};
+
+export type NatureAreaLabels = {
+  layer: EmptyVectorLayerProps;
+  /**
+   * Keeps every name on the outline it names. Call once both layers are on the map, since an empty
+   * vector layer has no source before that.
+   */
+  ready: (map: Map, shapes: VectorTileLayer) => void;
+};
+
+/**
+ * The names on their own layer, for a product that already draws the outlines itself.
+ *
+ * The outlines are handed over at {@link NatureAreaLabels.ready} rather than built here, so a
+ * product keeps whatever its own tile layer does - the parameters it passes, what it filters on.
+ * They only have to carry {@link AREA_CODE}, which is what ties a piece of outline to a name.
+ *
+ * The names go in the layer's source, from {@link natureAreasToFeatures}. Filling it is the
+ * product's, because a product that can switch dataset refills it, and because placing a name
+ * moves the feature it is on - so these cannot be the same features another layer draws.
+ */
+export function createNatureAreaLabels({ name, font = NATURE_AREA_LABEL_FONT }: NatureAreaLabelsOptions): NatureAreaLabels {
+  const layer: EmptyVectorLayerProps = {
+    name,
+    type: LayerType.EMPTY_VECTOR_LAYER,
+    visibility: true,
+    opacity: 1,
+    styleFunction: labelStyle(font),
+  };
+
+  function ready(map: Map, shapes: VectorTileLayer): void {
+    const labels = layer.layerRef as VectorLayer | undefined;
+    if (!labels) {
+      throw new Error("The names have to be on the map before they can be placed");
+    }
+
+    labels.setDeclutter(DECLUTTER_GROUP);
+
+    // A name stands on the outline it names, which is only known once that outline is drawn.
+    map.on("rendercomplete", () => {
+      const resolution = map.getView().getResolution() ?? 0;
+
+      placeLabels({
+        labels,
+        shapes,
+        matchOn: AREA_CODE,
+        view: map.getView().calculateExtent(map.getSize()),
+        worthPlacing: (shape, label) => fitsArea(wrapLabel(String(label.get(NATURE_AREA_NAME) ?? "")), shape, resolution, font),
+      });
+    });
+  }
+
+  return { layer, ready };
+}
+
 export type NatureAreaLayersOptions = {
   /** Base URL of the FAME platform. */
   host: string;
@@ -241,37 +301,18 @@ export async function createNatureAreaLayers({
     styleFunction: directiveAreaStyle,
   };
 
-  const names: EmptyVectorLayerProps = {
-    name: `${name} names`,
-    type: LayerType.EMPTY_VECTOR_LAYER,
-    visibility: true,
-    opacity: 1,
-    styleFunction: labelStyle(font),
-  };
+  const names = createNatureAreaLabels({ name: `${name} names`, font });
 
   function ready(map: Map): void {
-    const labels = names.layerRef as VectorLayer | undefined;
     const shapes = tiles.layerRef as VectorTileLayer | undefined;
-    if (!labels || !shapes) {
+    const labels = names.layer.layerRef as VectorLayer | undefined;
+    if (!shapes || !labels) {
       throw new Error("The nature area layers have to be on the map before their names can be placed");
     }
 
-    labels.setDeclutter(DECLUTTER_GROUP);
     labels.getSource()?.addFeatures(natureAreasToFeatures(areas));
-
-    // A name stands on the outline it names, which is only known once that outline is drawn.
-    map.on("rendercomplete", () => {
-      const resolution = map.getView().getResolution() ?? 0;
-
-      placeLabels({
-        labels,
-        shapes,
-        matchOn: AREA_CODE,
-        view: map.getView().calculateExtent(map.getSize()),
-        worthPlacing: (shape, label) => fitsArea(wrapLabel(String(label.get(NATURE_AREA_NAME) ?? "")), shape, resolution, font),
-      });
-    });
+    names.ready(map, shapes);
   }
 
-  return { key: NATURE_AREAS_GROUP, name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
+  return { key: NATURE_AREAS_GROUP, name, layers: [tiles, names.layer], legend: directiveAreaLegend(legendLabels), ready };
 }
