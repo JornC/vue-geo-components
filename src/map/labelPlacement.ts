@@ -15,33 +15,34 @@ import RenderFeature, { toGeometry } from "ol/render/Feature.js";
  * Standing a name on the shape it belongs to, using the outlines a vector tile layer is drawing.
  *
  * Names live on their own layer, one point per thing named, because a tile layer holds a shape as
- * one polygon per tile it crosses and would draw the name once per piece.
+ * one polygon per tile it crosses and would draw the name once per piece. `placeLabels` matches a
+ * name to its shape by feature id, takes the biggest piece of that shape on screen, and moves the
+ * name to where it reads best in it. Call it once the map has finished drawing, since that is when
+ * the outlines are known.
+ *
+ * Where a name reads best is the point with the most room around it, which `labelPoint` searches
+ * for. A centroid will not serve: the centroid of a crescent or a river system falls outside its
+ * own shape. So the shape is stripped of its fine detail and of its holes, a grid of candidates is
+ * laid over its extent, and the candidate that lies inside the shape and furthest from any edge
+ * wins. That distance is measured here rather than with turf, whose point-to-polygon distance reads
+ * coordinates as degrees and so does not even rank projected ones in the right order.
+ *
+ * Each name remembers the extent it was last considered for, so the redraw that follows a placement
+ * does not set the whole search going again.
  */
 
-/** Extent of the shape a name was placed on, and the sign that it has one to stand on at all. */
+/** Extent of the shape a name stands on, and the sign that it has one to stand on at all. */
 export const LABEL_SHAPE = "labelShape";
 
-/**
- * Extent of the shape last considered, placed on or not.
- *
- * Kept apart from {@link LABEL_SHAPE} because a shape can be worth naming and still have nowhere to
- * put the name - a strip narrower than the search grid holds no candidate. Without this the search
- * would run again on every frame for a name that will never be placed.
- */
 const LABEL_TRIED = "labelTried";
 
-/** Coarser picks the wrong part of a shape with several open areas. */
 const CANDIDATES_PER_AXIS = 12;
 
-/** Of the shape's own width. Finer detail costs time and moves the answer by a fraction of a pixel. */
+/** Of the shape's own width. */
 const DETAIL_TO_DROP = 1 / 2000;
 
 type Best = { at: Coordinate; room: number };
 
-/**
- * turf cannot answer this: its point-to-polygon distance reads coordinates as degrees and converts
- * to a length, so on a projected grid the numbers do not even rank in the right order.
- */
 function distanceToNearestEdge(at: Coordinate, rings: Coordinate[][]): number {
   const [x, y] = at as [number, number];
   let nearest = Number.POSITIVE_INFINITY;
@@ -62,13 +63,6 @@ function distanceToNearestEdge(at: Coordinate, rings: Coordinate[][]): number {
   return nearest;
 }
 
-/**
- * The point inside the shape with the most room around it, which is where a name reads best.
- *
- * A centroid will not serve: the centroid of a crescent or a river system falls outside the shape
- * it belongs to. Holes are filled in first, since a tile quantised to its grid can flatten a small
- * one to a ring too short for turf to read.
- */
 export function labelPoint(shape: Polygon): Coordinate | undefined {
   const outer = shape.getCoordinates()[0];
   if (shape.getArea() <= 0 || outer === undefined || outer.length < 4) {
@@ -99,7 +93,6 @@ export function labelPoint(shape: Polygon): Coordinate | undefined {
   return best?.at;
 }
 
-/** Vector tiles hand back a RenderFeature; a source told to keep ordinary features hands one of those. */
 function geometryOf(feature: FeatureLike): Geometry | undefined {
   return feature instanceof RenderFeature ? toGeometry(feature) : (feature.getGeometry() as Geometry | undefined);
 }
@@ -115,7 +108,6 @@ function sameExtent(one: Extent | undefined, other: Extent | undefined): boolean
   return one === undefined || other === undefined ? one === other : one.every((at, index) => at === other[index]);
 }
 
-/** The biggest piece of each shape on screen, since a name can only go in one place. */
 function biggestPieces(shapes: VectorTileLayer, view: Extent, matchOn: string): Map<string, Polygon> {
   const biggest = new Map<string, Polygon>();
 
@@ -137,9 +129,7 @@ function biggestPieces(shapes: VectorTileLayer, view: Extent, matchOn: string): 
 }
 
 export type LabelPlacement = {
-  /** Point features carrying the names. Each is matched to a shape by its feature id. */
   labels: VectorLayer;
-  /** The layer drawing the outlines the names belong to. */
   shapes: VectorTileLayer;
   /** Property on a tile feature holding the id of the label it belongs to. */
   matchOn: string;
@@ -148,14 +138,7 @@ export type LabelPlacement = {
   worthPlacing?: (shape: Extent, label: Feature) => boolean;
 };
 
-/**
- * Moves each name onto the shape it names. Call when the map has finished drawing, since that is
- * when the outlines it stands on are known.
- *
- * A name whose shape is not on screen is left without {@link LABEL_SHAPE}, for the style to skip.
- * Nothing is written unless it changed: every write redraws the map, and the redraw brings this
- * straight back round.
- */
+/** A name whose shape is not on screen is left without {@link LABEL_SHAPE}, for the style to skip. */
 export function placeLabels({ labels, shapes, matchOn, view, worthPlacing }: LabelPlacement): void {
   const pieces = biggestPieces(shapes, view, matchOn);
 
