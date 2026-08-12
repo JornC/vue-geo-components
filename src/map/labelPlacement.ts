@@ -48,12 +48,12 @@ function distanceToNearestEdge(at: Coordinate, rings: Coordinate[][]): number {
     for (let i = 0; i + 1 < ring.length; i++) {
       const [x1, y1] = ring[i] as [number, number];
       const [x2, y2] = ring[i + 1] as [number, number];
-      const runX = x2 - x1;
-      const runY = y2 - y1;
-      const edgeSquared = runX * runX + runY * runY;
-      const along = edgeSquared === 0 ? 0 : Math.max(0, Math.min(1, ((x - x1) * runX + (y - y1) * runY) / edgeSquared));
+      const diffX = x2 - x1;
+      const diffY = y2 - y1;
+      const edgeSquared = diffX * diffX + diffY * diffY;
+      const along = edgeSquared === 0 ? 0 : Math.max(0, Math.min(1, ((x - x1) * diffX + (y - y1) * diffY) / edgeSquared));
 
-      nearest = Math.min(nearest, Math.hypot(x - (x1 + along * runX), y - (y1 + along * runY)));
+      nearest = Math.min(nearest, Math.hypot(x - (x1 + along * diffX), y - (y1 + along * diffY)));
     }
   }
 
