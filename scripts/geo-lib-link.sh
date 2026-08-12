@@ -14,9 +14,6 @@ set -e
 #   geo-lib-link.sh <frontend-dir> unlink   use the published package
 #   geo-lib-link.sh <frontend-dir> update   fetch the latest published version
 #   geo-lib-link.sh <frontend-dir> status   print the current mode
-#
-# This lives in the library rather than in each app because every app needs the
-# same thing; the app passes its own frontend directory and nothing else.
 
 SCRIPT_PATH=$(readlink -f "${BASH_SOURCE:-$0}")
 SCRIPT_DIR=$(dirname "${SCRIPT_PATH}")

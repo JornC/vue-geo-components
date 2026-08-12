@@ -1,7 +1,6 @@
 name: Publish snapshot
 
 # Publishes a dev snapshot to Nexus on every push to main (upstream repo only).
-# This runs only for pushes to main, never for pull requests or other branches.
 on:
   push:
     branches: [main]

@@ -1,18 +1,11 @@
 import type { LayerProps } from "./types";
 
-/**
- * Class to keep track of multiple layers of which only 1 can be active at a time.
- */
+/** Layers of which only one can be active at a time. */
 export class CombinedLayers {
   layers: LayerProps[];
   selectedLayer: LayerProps | null;
   layerEnabled: boolean;
 
-  /**
-   * Constructor
-   *
-   * @param layerEnabled if the layer is enabled, default is value.
-   */
   constructor(layerEnabled: boolean = false) {
     this.layers = [];
     this.selectedLayer = null;

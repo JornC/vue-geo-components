@@ -6,7 +6,6 @@
  */
 const SCREEN_DPI = 96;
 
-/** Inches in a metre. */
 const INCHES_PER_METER = 39.37;
 
 /**

@@ -12,8 +12,7 @@ set -e
 # Usage: geo-lib.sh <frontend-dir> [link|unlink|update|status]
 #
 # With a command it just forwards to geo-lib-link.sh, so an app needs to know
-# about one script rather than two. This lives in the library because it was the
-# same file in every app.
+# about one script rather than two.
 
 SCRIPT_PATH=$(readlink -f "${BASH_SOURCE:-$0}")
 SCRIPT_DIR=$(dirname "${SCRIPT_PATH}")

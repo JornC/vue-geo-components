@@ -71,9 +71,8 @@ export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
       feature.set(NATURE_AREA_EXTENT, wkt.readGeometry(area.extentWkt).getExtent());
       features.push(feature);
     } catch (error) {
-      // Unreadable geometry: skip this site, keep the rest. Loud, because a site
-      // missing from the map is otherwise indistinguishable from one that is not
-      // in the data at all.
+      // Loud, because a site missing from the map is otherwise indistinguishable
+      // from one that is not in the data at all.
       console.warn(`Skipping Natura 2000 site ${area.id}: geometry could not be read.`, error);
     }
   }

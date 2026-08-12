@@ -33,10 +33,9 @@ export interface LayerBaseProps {
   /* 0 to 1, matching OpenLayers */
   opacity: number;
 
-  /* Only 1 layer of a given group can be visible at the same time. This is useful for example for base layers */
+  /* Only one layer of a group is visible at a time, as base layers are. */
   group?: string;
 
-  /* Reference to the physical layer object */
   layerRef?: Layer;
 
   legend?: LegendProps;
@@ -114,8 +113,8 @@ export type LayerProps = EmptyVectorLayerProps | WMSLayerProps | WMTSLayerProps 
 
 export type LayerStyleType = {
   key: string;
-  max?: number; // test if value < than max
-  maxAnd?: number; // test if value <= than maxAnd
+  max?: number; // exclusive
+  maxAnd?: number; // inclusive
   fillColor: string;
   strokeColor: string;
 };
