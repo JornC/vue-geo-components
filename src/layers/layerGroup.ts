@@ -17,7 +17,7 @@ export type LayerGroup = {
   legend?: LegendDisplay;
 };
 
-/** Whether the group is drawn, which every layer in it agrees on. */
+/** Every layer in the group agrees on this. */
 export function isLayerGroupVisible(group: LayerGroup): boolean {
   return group.layers[0]?.visibility ?? false;
 }

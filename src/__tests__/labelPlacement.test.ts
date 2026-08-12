@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import { labelPoint } from "@/map/labelPlacement";
 
-/** True when the point is inside the shape, which is the whole promise of this function. */
 function inside(polygon: Polygon, point: [number, number] | undefined): boolean {
   return point !== undefined && polygon.intersectsCoordinate(point);
 }
@@ -45,8 +44,8 @@ describe("Label point", () => {
 
     const [x, y] = labelPoint(square) as [number, number];
 
-    // turf's own point-to-polygon distance reads these as degrees and ranks them wrongly, which put
-    // the name of an empty square nearer its corner than its middle.
+    // turf's own distance ranked these wrongly, which put the name of an empty square nearer its
+    // corner than its middle.
     expect(Math.hypot(x - 500, y - 500), "The middle of a square is where a name has most room").toBeLessThan(100);
   });
 
