@@ -44,14 +44,14 @@ describe("Label point", () => {
 
     const [x, y] = labelPoint(square) as [number, number];
 
-    // turf's own distance ranked these wrongly, which put the name of an empty square nearer its
+    // Getting this wrong once put the name of an empty square nearer its
     // corner than its middle.
     expect(Math.hypot(x - 500, y - 500), "The middle of a square is where a name has most room").toBeLessThan(100);
   });
 
   it("Fills the holes in, so a broken one cannot cost the label", () => {
     // Tiles are quantised to their own grid, which flattens a small enough hole to two or three
-    // points; turf will not read a ring that short. The Veluwe has 739 holes, so one arriving
+    // points, which cannot be read as a ring. The Veluwe has 739 holes, so one arriving
     // broken used to leave the whole area unnamed.
     const nicked = new Polygon([
       [

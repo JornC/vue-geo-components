@@ -1,6 +1,3 @@
-import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
-import { point, polygon as turfPolygon } from "@turf/helpers";
-import simplify from "@turf/simplify";
 import type { Coordinate } from "ol/coordinate.js";
 import type { Extent } from "ol/extent.js";
 import type Feature from "ol/Feature.js";
@@ -12,25 +9,23 @@ import type VectorTileLayer from "ol/layer/VectorTile.js";
 import RenderFeature, { toGeometry } from "ol/render/Feature.js";
 
 /**
- * Standing a name on the shape it belongs to, using the outlines a vector tile layer is drawing.
- * Names live on their own layer, one point per thing named, because a tile layer holds a shape as
- * one polygon per tile it crosses and would draw the name once per piece.
+ * Puts a name on the shape it belongs to, using the outlines a vector tile layer is drawing.
+ * Names sit on their own layer, one point each, because a tile layer holds a shape as one polygon
+ * per tile it crosses and would draw the name once per piece.
  *
- * What a placed name has to be:
- * - One per thing named, however many pieces its shape arrives in.
- * - Inside its own shape. A centroid will not serve: the centroid of a crescent or a river system
- *   falls outside the shape it belongs to.
- * - Standing where that shape has most room for it, so the name reads as belonging to it.
+ * A name has to end up:
+ * - drawn once, however many pieces its shape arrives in;
+ * - inside its own shape, which a centroid does not guarantee - the centre of a crescent or a river
+ *   system lies outside it;
+ * - in the most open part of that shape, so it reads as belonging to it.
  *
- * How `placeLabels` gets there, for each name, once the map has finished drawing:
- * - Match the name to its shape by feature id, and take the biggest piece of it on screen.
- * - Strip that piece of its fine detail and of its holes.
- * - Lay a grid of candidates over its extent, and keep the ones that fall inside it.
- * - Put the name on the candidate furthest from any edge. That distance is measured here rather
- *   than with turf, whose point-to-polygon distance reads coordinates as degrees and so does not
- *   even rank projected ones in the right order.
- * - Remember the extent the name was last considered for, so the redraw that follows does not set
- *   the whole search going again.
+ * For each name, once the map has finished drawing:
+ * - find its shape by feature id, and take the biggest piece of it on screen;
+ * - drop that piece's fine detail and its holes;
+ * - lay a grid of points over it and keep the ones that fall inside;
+ * - use the one furthest from any edge;
+ * - remember which shape it was worked out for, so the redraw that follows does not start the
+ *   search over again.
  */
 
 /** Extent of the shape a name stands on, and the sign that it has one to stand on at all. */
@@ -73,15 +68,15 @@ export function labelPoint(shape: Polygon): Coordinate | undefined {
 
   const [minX, minY, maxX, maxY] = shape.getExtent() as [number, number, number, number];
   const span = Math.max(maxX - minX, maxY - minY);
-  const outline = simplify(turfPolygon([outer]), { tolerance: span * DETAIL_TO_DROP, highQuality: false });
-  const rings = outline.geometry.coordinates as Coordinate[][];
+  const outline = new Polygon([outer]).simplify(span * DETAIL_TO_DROP) as Polygon;
+  const rings = outline.getCoordinates();
   let best: Best | undefined;
 
   for (let column = 1; column <= CANDIDATES_PER_AXIS; column++) {
     for (let row = 1; row <= CANDIDATES_PER_AXIS; row++) {
       const at: Coordinate = [minX + ((maxX - minX) * column) / (CANDIDATES_PER_AXIS + 1), minY + ((maxY - minY) * row) / (CANDIDATES_PER_AXIS + 1)];
 
-      if (!booleanPointInPolygon(point(at), outline)) {
+      if (!outline.intersectsCoordinate(at)) {
         continue;
       }
 
