@@ -97,6 +97,7 @@ export {
   NATURE_AREAS_GROUP,
   directiveAreaLegend,
   directiveAreaStyle,
+  directiveAreaStyleValues,
   fetchNatureAreas,
   wrapLabel,
   NATURE_AREA_LABEL_FONT,

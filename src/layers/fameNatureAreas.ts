@@ -57,14 +57,15 @@ const DECLUTTER_GROUP = "nature-area-labels";
 
 type DirectiveArea = LayerStyleType & { key: string };
 
-const directiveAreas: [DirectiveArea, ...DirectiveArea[]] = [
+/** Exported so a product that draws these itself colours them the same, and can build its own legend. */
+export const directiveAreaStyleValues: [DirectiveArea, ...DirectiveArea[]] = [
   { key: "HR", fillColor: "#f4e798", strokeColor: "#808080" },
   { key: "VR", fillColor: "#bbddea", strokeColor: "#808080" },
   { key: "VR+HR", fillColor: "#cfe2a1", strokeColor: "#808080" },
   { key: UNDETERMINED, fillColor: "#d6b9d2", strokeColor: "#808080" },
 ];
 
-const fills = toStylesMap(directiveAreas);
+const fills = toStylesMap(directiveAreaStyleValues);
 
 /** An unknown code draws nothing rather than being coloured as some other directive. */
 export function directiveAreaStyle(feature: FeatureLike): Style | null {
@@ -75,7 +76,7 @@ export function directiveAreaStyle(feature: FeatureLike): Style | null {
 export function directiveAreaLegend(labels: Record<string, string>): LayerGroup["legend"] {
   return {
     iconType: LegendIconType.CIRCLE,
-    items: directiveAreas.map((area) => ({
+    items: directiveAreaStyleValues.map((area) => ({
       key: area.key,
       color: area.fillColor,
       label: labels[area.key] ?? area.key,
