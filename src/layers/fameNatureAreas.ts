@@ -187,13 +187,13 @@ async function readCapabilities(host: string): Promise<WmtsCapabilitiesJson> {
  * is what catches it: expect a failed tile and a console error rather than a clean stack.
  */
 export function natureAreaViewParams(dataset: string, areas?: () => string[]): string {
-  const wanted = areas?.() ?? [];
-  if (wanted.length > 1) {
-    throw new Error(`FAME draws one nature area at a time, not ${wanted.length}`);
+  const selected = areas?.() ?? [];
+  if (selected.length > 1) {
+    throw new Error(`FAME draws one nature area at a time, not ${selected.length}`);
   }
 
-  const [only] = wanted;
-  return encodeURIComponent(`dataset:${dataset}${only ? `;natura2000AreaCode:${only}` : ""}`);
+  const [areaCode] = selected;
+  return encodeURIComponent(`dataset:${dataset}${areaCode ? `;natura2000AreaCode:${areaCode}` : ""}`);
 }
 
 function matrixSetFor(capabilities: WmtsCapabilitiesJson, epsgCode: string): Record<string, unknown> {
