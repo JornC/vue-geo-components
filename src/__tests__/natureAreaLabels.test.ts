@@ -4,7 +4,7 @@ import VectorLayer from "ol/layer/Vector.js";
 import VectorSource from "ol/source/Vector.js";
 import { describe, expect, it, vi } from "vitest";
 
-import { createNatureAreaLabels } from "@/layers/fameNatureAreas";
+import { createNatureAreaLabels, natureAreaViewParams } from "@/layers/fameNatureAreas";
 import { LABEL_SHAPE } from "@/map/labelPlacement";
 import { NATURE_AREA_NAME } from "@/layers/natureAreas";
 
@@ -35,6 +35,25 @@ function outline(areaCode: string) {
   feature.set("natura2000_area_code", areaCode);
   return feature;
 }
+
+describe("Choosing which areas to draw", () => {
+  it("Asks for every site when none are named", () => {
+    expect(decodeURIComponent(natureAreaViewParams("m25")), "No selection means the whole country").toBe("dataset:m25");
+  });
+
+  it("Narrows to the one site a product asked for", () => {
+    expect(decodeURIComponent(natureAreaViewParams("m25", () => ["57"])), "FAME takes the code as a viewparam").toBe(
+      "dataset:m25;natura2000AreaCode:57",
+    );
+  });
+
+  it("Refuses more sites than FAME can draw", () => {
+    expect(
+      () => natureAreaViewParams("m25", () => ["57", "38"]),
+      "Drawing one of three silently would read as missing data rather than a mistake",
+    ).toThrow();
+  });
+});
 
 describe("Naming the areas a product draws itself", () => {
   it("Refuses to place names that are not on the map yet", () => {

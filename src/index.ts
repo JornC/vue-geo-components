@@ -94,6 +94,7 @@ export { labelPoint, placeLabels, LABEL_SHAPE } from "./map/labelPlacement";
 export {
   createNatureAreaLabels,
   createNatureAreaLayers,
+  natureAreaViewParams,
   NATURE_AREAS_GROUP,
   directiveAreaLegend,
   directiveAreaStyle,

@@ -181,6 +181,22 @@ async function readCapabilities(host: string): Promise<WmtsCapabilitiesJson> {
   return new WMTSCapabilities().read(await response.text()) as WmtsCapabilitiesJson;
 }
 
+/**
+ * The dataset, and the site to narrow to when there is one.
+ *
+ * Thrown rather than narrowed, because a product asking for three sites and being shown one would
+ * look like missing data. Note that this runs while a tile URL is being built, so OpenLayers is what
+ * catches it: expect a failed tile and a console error rather than a clean stack.
+ */
+export function natureAreaViewParams(dataset: string, areas?: () => string[]): string {
+  const drawing = areas?.() ?? [];
+  if (drawing.length > 1) {
+    throw new Error(`FAME draws one nature area at a time, not ${drawing.length}`);
+  }
+
+  return encodeURIComponent(`dataset:${dataset}${drawing[0] ? `;natura2000AreaCode:${drawing[0]}` : ""}`);
+}
+
 function matrixSetFor(capabilities: WmtsCapabilitiesJson, epsgCode: string): Record<string, unknown> {
   const matrixSet = capabilities.Contents.TileMatrixSet.find((set) => set.Identifier === epsgCode);
   if (!matrixSet) {
@@ -261,6 +277,15 @@ export type NatureAreaLayersOptions = {
   /** Legend label per directive code, already translated. */
   legendLabels: Record<string, string>;
   font?: string;
+  /**
+   * Which sites to draw, none meaning all of them. Read for every tile, so a product is free to
+   * change what it returns.
+   *
+   * A list so that this contract survives FAME learning to draw several at once, which would
+   * otherwise change every product's call. Its layer takes a single code today - the viewparam
+   * validates as one number - so more than one is refused here rather than quietly narrowed.
+   */
+  areas?: () => string[];
 };
 
 export type NatureAreaLayers = LayerGroup & {
@@ -282,10 +307,10 @@ export async function createNatureAreaLayers({
   name,
   legendLabels,
   font = NATURE_AREA_LABEL_FONT,
+  areas: drawing,
 }: NatureAreaLayersOptions): Promise<NatureAreaLayers> {
   const [capabilities, areas] = await Promise.all([readCapabilities(host), fetchNatureAreas(host, dataset)]);
   const matrixLimits = getMatrixLimitsForLayer(capabilities, FAME_LAYER, geo.epsgCode);
-  const viewParams = encodeURIComponent(`dataset:${dataset}`);
 
   const tiles: VectorTileLayerProps = {
     name,
@@ -294,7 +319,7 @@ export async function createNatureAreaLayers({
       `${wmtsUrl(host)}?service=WMTS&version=1.1.0&request=GetTile` +
       `&tilecol={x}&tilerow={y}&format=application%2Fvnd.mapbox-vector-tile&viewparams={ViewParams}` +
       `&LAYER=${encodeURI(FAME_LAYER)}&tilematrixset=${geo.epsgCode}&tilematrix=${geo.epsgCode}:{z}`,
-    viewParams: () => viewParams,
+    viewParams: () => natureAreaViewParams(dataset, drawing),
     tileGrid: createFromCapabilitiesMatrixSet(matrixSetFor(capabilities, geo.epsgCode), geo.extent, matrixLimits),
     matrixLimits,
     visibility: true,
