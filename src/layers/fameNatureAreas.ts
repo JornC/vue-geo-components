@@ -206,8 +206,13 @@ function matrixSetFor(capabilities: WmtsCapabilitiesJson, epsgCode: string): Rec
 export type NatureAreaLayersOptions = {
   /** Base URL of the FAME platform. */
   host: string;
-  /** FAME schema to read. GeoServer falls back to `none` without it, which fails. */
-  dataset: string;
+  /**
+   * FAME schema to read. GeoServer falls back to `none` without it, which fails.
+   *
+   * A function for a product that lets the user switch dataset; the tiles follow it on their next
+   * request, and {@link NatureAreaLayers.refresh} fetches the names for it again.
+   */
+  dataset: string | (() => string);
   /** Only what the tile grid needs: the projection to ask FAME for, and the extent it covers. */
   geo: Pick<GeoInformation, "epsgCode" | "extent">;
   /** Shown for the layer, already translated. */
@@ -232,6 +237,8 @@ export type NatureAreaLayers = LayerGroup & {
    * are on the map, since an empty vector layer has no source before that.
    */
   ready: (map: Map) => void;
+  /** Reads the names for whatever dataset is current now. Only a product that can switch needs it. */
+  refresh: () => Promise<void>;
 };
 
 /**
@@ -247,8 +254,10 @@ export async function createNatureAreaLayers({
   font = NATURE_AREA_LABEL_FONT,
   areas: drawing,
 }: NatureAreaLayersOptions): Promise<NatureAreaLayers> {
-  const [capabilities, areas] = await Promise.all([readCapabilities(host), fetchNatureAreas(host, dataset)]);
+  const reading = typeof dataset === "function" ? dataset : () => dataset;
+  const [capabilities, initial] = await Promise.all([readCapabilities(host), fetchNatureAreas(host, reading())]);
   const matrixLimits = getMatrixLimitsForLayer(capabilities, FAME_LAYER, geo.epsgCode);
+  let areas = initial;
 
   const tiles: VectorTileLayerProps = {
     name,
@@ -257,7 +266,7 @@ export async function createNatureAreaLayers({
       `${wmtsUrl(host)}?service=WMTS&version=1.1.0&request=GetTile` +
       `&tilecol={x}&tilerow={y}&format=application%2Fvnd.mapbox-vector-tile&viewparams={ViewParams}` +
       `&LAYER=${encodeURI(FAME_LAYER)}&tilematrixset=${geo.epsgCode}&tilematrix=${geo.epsgCode}:{z}`,
-    viewParams: () => natureAreaViewParams(dataset, drawing),
+    viewParams: () => natureAreaViewParams(reading(), drawing),
     tileGrid: createFromCapabilitiesMatrixSet(matrixSetFor(capabilities, geo.epsgCode), geo.extent, matrixLimits),
     matrixLimits,
     visibility: true,
@@ -273,6 +282,18 @@ export async function createNatureAreaLayers({
     styleFunction: labelStyle(font),
   };
 
+  /** Fresh features every time, because placing a name moves the one it sits on. */
+  function fill(): void {
+    const labels = (names.layerRef as VectorLayer | undefined)?.getSource();
+    labels?.clear();
+    labels?.addFeatures(natureAreasToFeatures(areas));
+  }
+
+  async function refresh(): Promise<void> {
+    areas = await fetchNatureAreas(host, reading());
+    fill();
+  }
+
   function ready(map: Map): void {
     const shapes = tiles.layerRef as VectorTileLayer | undefined;
     const labels = names.layerRef as VectorLayer | undefined;
@@ -281,7 +302,7 @@ export async function createNatureAreaLayers({
     }
 
     labels.setDeclutter(DECLUTTER_GROUP);
-    labels.getSource()?.addFeatures(natureAreasToFeatures(areas));
+    fill();
 
     // A name stands on the outline it names, which is only known once that outline is drawn.
     map.on("rendercomplete", () => {
@@ -297,5 +318,5 @@ export async function createNatureAreaLayers({
     });
   }
 
-  return { key: NATURE_AREAS_GROUP, name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
+  return { key: NATURE_AREAS_GROUP, name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready, refresh };
 }
