@@ -259,7 +259,7 @@ export async function createNatureAreaLayers({
   const [capabilities, initialSites] = await Promise.all([readCapabilities(host), fetchNatureAreas(host, currentDataset())]);
   const matrixLimits = getMatrixLimitsForLayer(capabilities, FAME_LAYER, geo.epsgCode);
 
-  /** The sites the names are drawn from, read again whenever the dataset changes. */
+  /** The sites the names are drawn from. */
   let sites = initialSites;
 
   const tiles: VectorTileLayerProps = {
