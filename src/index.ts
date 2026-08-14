@@ -92,7 +92,6 @@ export type { FlyController, FlyOptions, FlyTarget } from "./map/flyTo";
 export { zoomToExtent } from "./map/zoomToExtent";
 export { labelPoint, placeLabels, LABEL_SHAPE } from "./map/labelPlacement";
 export {
-  createNatureAreaLabels,
   createNatureAreaLayers,
   natureAreaViewParams,
   NATURE_AREAS_GROUP,
@@ -104,7 +103,7 @@ export {
   NATURE_AREA_LABEL_FONT,
   UNDETERMINED,
 } from "./layers/fameNatureAreas";
-export type { NatureAreaLabels, NatureAreaLabelsOptions, NatureAreaLayers, NatureAreaLayersOptions } from "./layers/fameNatureAreas";
+export type { NatureAreaLayers, NatureAreaLayersOptions } from "./layers/fameNatureAreas";
 export type { LabelPlacement } from "./map/labelPlacement";
 
 // Handing a detailed background over to an overview as the map zooms out.

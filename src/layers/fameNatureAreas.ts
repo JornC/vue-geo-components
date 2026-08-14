@@ -57,7 +57,7 @@ const DECLUTTER_GROUP = "nature-area-labels";
 
 type DirectiveArea = LayerStyleType & { key: string };
 
-/** Exported so a product that draws these itself colours them the same, and can build its own legend. */
+/** The same colours wherever these areas are drawn, a product's own legend included. */
 export const directiveAreaStyleValues: [DirectiveArea, ...DirectiveArea[]] = [
   { key: "HR", fillColor: "#f4e798", strokeColor: "#808080" },
   { key: "VR", fillColor: "#bbddea", strokeColor: "#808080" },
@@ -182,11 +182,9 @@ async function readCapabilities(host: string): Promise<WmtsCapabilitiesJson> {
 }
 
 /**
- * The dataset, and the site to narrow to when there is one.
- *
- * Thrown rather than narrowed, because a product asking for three sites and being shown one would
- * look like missing data. Note that this runs while a tile URL is being built, so OpenLayers is what
- * catches it: expect a failed tile and a console error rather than a clean stack.
+ * More than one site throws rather than being narrowed, because a product asking for three and
+ * being shown one would look like missing data. This runs while a tile URL is built, so OpenLayers
+ * is what catches it: expect a failed tile and a console error rather than a clean stack.
  */
 export function natureAreaViewParams(dataset: string, areas?: () => string[]): string {
   const drawing = areas?.() ?? [];
@@ -203,66 +201,6 @@ function matrixSetFor(capabilities: WmtsCapabilitiesJson, epsgCode: string): Rec
     throw new Error(`FAME does not publish tiles in ${epsgCode}`);
   }
   return matrixSet;
-}
-
-export type NatureAreaLabelsOptions = {
-  /** Shown for the layer, already translated. */
-  name: string;
-  font?: string;
-};
-
-export type NatureAreaLabels = {
-  layer: EmptyVectorLayerProps;
-  /**
-   * Keeps every name on the outline it names. Call once both layers are on the map, since an empty
-   * vector layer has no source before that.
-   */
-  ready: (map: Map, shapes: VectorTileLayer) => void;
-};
-
-/**
- * The names on their own layer, for a product that already draws the outlines itself.
- *
- * The outlines are handed over at {@link NatureAreaLabels.ready} rather than built here, so a
- * product keeps whatever its own tile layer does - the parameters it passes, what it filters on.
- * They only have to carry {@link AREA_CODE}, which is what ties a piece of outline to a name.
- *
- * The names go in the layer's source, from {@link natureAreasToFeatures}. Filling it is the
- * product's, because a product that can switch dataset refills it, and because placing a name
- * moves the feature it is on - so these cannot be the same features another layer draws.
- */
-export function createNatureAreaLabels({ name, font = NATURE_AREA_LABEL_FONT }: NatureAreaLabelsOptions): NatureAreaLabels {
-  const layer: EmptyVectorLayerProps = {
-    name,
-    type: LayerType.EMPTY_VECTOR_LAYER,
-    visibility: true,
-    opacity: 1,
-    styleFunction: labelStyle(font),
-  };
-
-  function ready(map: Map, shapes: VectorTileLayer): void {
-    const labels = layer.layerRef as VectorLayer | undefined;
-    if (!labels) {
-      throw new Error("The names have to be on the map before they can be placed");
-    }
-
-    labels.setDeclutter(DECLUTTER_GROUP);
-
-    // A name stands on the outline it names, which is only known once that outline is drawn.
-    map.on("rendercomplete", () => {
-      const resolution = map.getView().getResolution() ?? 0;
-
-      placeLabels({
-        labels,
-        shapes,
-        matchOn: AREA_CODE,
-        view: map.getView().calculateExtent(map.getSize()),
-        worthPlacing: (shape, label) => fitsArea(wrapLabel(String(label.get(NATURE_AREA_NAME) ?? "")), shape, resolution, font),
-      });
-    });
-  }
-
-  return { layer, ready };
 }
 
 export type NatureAreaLayersOptions = {
@@ -327,18 +265,37 @@ export async function createNatureAreaLayers({
     styleFunction: directiveAreaStyle,
   };
 
-  const names = createNatureAreaLabels({ name: `${name} names`, font });
+  const names: EmptyVectorLayerProps = {
+    name: `${name} names`,
+    type: LayerType.EMPTY_VECTOR_LAYER,
+    visibility: true,
+    opacity: 1,
+    styleFunction: labelStyle(font),
+  };
 
   function ready(map: Map): void {
     const shapes = tiles.layerRef as VectorTileLayer | undefined;
-    const labels = names.layer.layerRef as VectorLayer | undefined;
+    const labels = names.layerRef as VectorLayer | undefined;
     if (!shapes || !labels) {
       throw new Error("The nature area layers have to be on the map before their names can be placed");
     }
 
+    labels.setDeclutter(DECLUTTER_GROUP);
     labels.getSource()?.addFeatures(natureAreasToFeatures(areas));
-    names.ready(map, shapes);
+
+    // A name stands on the outline it names, which is only known once that outline is drawn.
+    map.on("rendercomplete", () => {
+      const resolution = map.getView().getResolution() ?? 0;
+
+      placeLabels({
+        labels,
+        shapes,
+        matchOn: AREA_CODE,
+        view: map.getView().calculateExtent(map.getSize()),
+        worthPlacing: (shape, label) => fitsArea(wrapLabel(String(label.get(NATURE_AREA_NAME) ?? "")), shape, resolution, font),
+      });
+    });
   }
 
-  return { key: NATURE_AREAS_GROUP, name, layers: [tiles, names.layer], legend: directiveAreaLegend(legendLabels), ready };
+  return { key: NATURE_AREAS_GROUP, name, layers: [tiles, names], legend: directiveAreaLegend(legendLabels), ready };
 }
