@@ -252,12 +252,14 @@ export async function createNatureAreaLayers({
   name,
   legendLabels,
   font = NATURE_AREA_LABEL_FONT,
-  areas: drawing,
+  areas,
 }: NatureAreaLayersOptions): Promise<NatureAreaLayers> {
-  const reading = typeof dataset === "function" ? dataset : () => dataset;
-  const [capabilities, initial] = await Promise.all([readCapabilities(host), fetchNatureAreas(host, reading())]);
+  const currentDataset = typeof dataset === "function" ? dataset : () => dataset;
+  const [capabilities, initialSites] = await Promise.all([readCapabilities(host), fetchNatureAreas(host, currentDataset())]);
   const matrixLimits = getMatrixLimitsForLayer(capabilities, FAME_LAYER, geo.epsgCode);
-  let areas = initial;
+
+  /** The sites the names are drawn from, read again whenever the dataset changes. */
+  let sites = initialSites;
 
   const tiles: VectorTileLayerProps = {
     name,
@@ -266,7 +268,7 @@ export async function createNatureAreaLayers({
       `${wmtsUrl(host)}?service=WMTS&version=1.1.0&request=GetTile` +
       `&tilecol={x}&tilerow={y}&format=application%2Fvnd.mapbox-vector-tile&viewparams={ViewParams}` +
       `&LAYER=${encodeURI(FAME_LAYER)}&tilematrixset=${geo.epsgCode}&tilematrix=${geo.epsgCode}:{z}`,
-    viewParams: () => natureAreaViewParams(reading(), drawing),
+    viewParams: () => natureAreaViewParams(currentDataset(), areas),
     tileGrid: createFromCapabilitiesMatrixSet(matrixSetFor(capabilities, geo.epsgCode), geo.extent, matrixLimits),
     matrixLimits,
     visibility: true,
@@ -286,11 +288,11 @@ export async function createNatureAreaLayers({
   function fill(): void {
     const labels = (names.layerRef as VectorLayer | undefined)?.getSource();
     labels?.clear();
-    labels?.addFeatures(natureAreasToFeatures(areas));
+    labels?.addFeatures(natureAreasToFeatures(sites));
   }
 
   async function refresh(): Promise<void> {
-    areas = await fetchNatureAreas(host, reading());
+    sites = await fetchNatureAreas(host, currentDataset());
     fill();
   }
 
