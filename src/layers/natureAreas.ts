@@ -45,11 +45,7 @@ export type NatureArea = {
   id: string;
   name: string;
   authority?: string;
-  /**
-   * Point the site is drawn at, which has to lie inside it. A centroid will not do:
-   * the centre of a crescent or of a branching river system falls outside the shape
-   * it belongs to, which puts the site's marker where the site is not.
-   */
+  /** Point the site is drawn at. Not a centroid: the centre of a crescent falls outside it. */
   interiorPointWkt: string;
   /** Any geometry covering the site; only its bounding box is kept. */
   extentWkt: string;
