@@ -55,18 +55,16 @@ describe("nature areas", () => {
   });
 
   describe("natureAreaPointStyle", () => {
-    it("is a single dot when not hovered", () => {
+    it("is a single dot", () => {
       const [feature] = natureAreasToFeatures([area]);
 
       expect(natureAreaPointStyle(feature!)).toBeInstanceOf(Style);
     });
 
-    it("adds a label when hovered", () => {
+    it("never draws the name, which is the product's to place", () => {
       const [feature] = natureAreasToFeatures([area]);
-      const styles = natureAreaPointStyle(feature!, true) as Style[];
 
-      expect(Array.isArray(styles)).toBe(true);
-      expect(styles.at(-1)?.getText()?.getText()).toBe("Veluwe");
+      expect(natureAreaPointStyle(feature!).getText()).toBeFalsy();
     });
   });
 });

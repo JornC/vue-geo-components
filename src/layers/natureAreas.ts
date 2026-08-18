@@ -4,9 +4,7 @@ import WKT from "ol/format/WKT.js";
 import type { Extent } from "ol/extent.js";
 import Circle from "ol/style/Circle.js";
 import Fill from "ol/style/Fill.js";
-import Stroke from "ol/style/Stroke.js";
 import Style from "ol/style/Style.js";
-import Text from "ol/style/Text.js";
 
 /**
  * Natura 2000 sites shown as points on the map.
@@ -21,8 +19,6 @@ import Text from "ol/style/Text.js";
  * stale.
  */
 
-/** Font for the hover label; Georama is the AERIUS typeface. */
-const LABEL_FONT = "14px Georama, Calibri, sans-serif";
 const AERIUS_DARK_BLUE = "#193884";
 
 /** Feature property holding a site's extent, as written by {@link natureAreasToFeatures}. */
@@ -93,36 +89,16 @@ const defaultStyle = new Style({
   }),
 });
 
-function hoverStyle(name: string): Style[] {
-  return [
-    new Style({
-      image: new Circle({
-        radius: 8,
-        fill: new Fill({ color: "#fff" }),
-        stroke: new Stroke({ color: "#d4ecf5", width: 3 }),
-      }),
-    }),
-    defaultStyle,
-    new Style({
-      text: new Text({
-        text: name,
-        font: LABEL_FONT,
-        fill: new Fill({ color: "#fff" }),
-        backgroundFill: new Fill({ color: AERIUS_DARK_BLUE }),
-        backgroundStroke: new Stroke({ color: "#fff", width: 3 }),
-        padding: [4, 4, 4, 4],
-        offsetY: -25,
-      }),
-    }),
-  ];
-}
-
 /**
- * Style for a Natura 2000 site point: a dot, or a labelled marker when hovered.
+ * Style for a Natura 2000 site point: a dot, and only that.
  *
- * Whether a feature counts as hovered is the caller's to decide, since that
- * lives in product state rather than on the feature.
+ * Marking out the point under the pointer, and naming it, are the product's to draw:
+ * a name bundled in here would be a name on the canvas, and a product may want it in
+ * the DOM, where it is styled and read like the rest of its interface.
+ *
+ * Takes the feature so it can be handed to OpenLayers as a layer's style function,
+ * though every site is drawn alike.
  */
-export function natureAreaPointStyle(feature: FeatureLike, hovered: boolean = false): Style | Style[] {
-  return hovered ? hoverStyle(String(feature.get(NATURE_AREA_NAME) ?? "")) : defaultStyle;
+export function natureAreaPointStyle(_feature?: FeatureLike): Style {
+  return defaultStyle;
 }
