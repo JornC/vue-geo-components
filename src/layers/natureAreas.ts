@@ -11,7 +11,7 @@ import Text from "ol/style/Text.js";
 /**
  * Natura 2000 sites shown as points on the map.
  *
- * A site is drawn at its centroid, and picking one flies the map to the site's
+ * A site is drawn at a point inside it, and picking one flies the map to the site's
  * bounding box. So a feature here carries a point and four numbers - never the
  * site's actual boundary. Nothing in this module can outline a site; a product
  * that needs outlines has to fetch the polygons and render them itself.
@@ -38,15 +38,19 @@ export const NATURE_AREA_AUTHORITY = "authority";
  * A Natura 2000 site, in the shape this module needs it.
  *
  * Both geometries are WKT, which is how AERIUS services publish them. Only the
- * centroid survives as a geometry - the other is reduced to its bounding box on
- * the way in and the shape itself is dropped.
+ * point survives as a geometry - the other is reduced to its bounding box on the
+ * way in and the shape itself is dropped.
  */
 export type NatureArea = {
   id: string;
   name: string;
   authority?: string;
-  /** Point the site is drawn at. */
-  centroidWkt: string;
+  /**
+   * Point the site is drawn at, which has to lie inside it. A centroid will not do:
+   * the centre of a crescent or of a branching river system falls outside the shape
+   * it belongs to, which puts the site's marker where the site is not.
+   */
+  interiorPointWkt: string;
   /** Any geometry covering the site; only its bounding box is kept. */
   extentWkt: string;
 };
@@ -64,7 +68,7 @@ export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
 
   for (const area of areas) {
     try {
-      const feature = new Feature(wkt.readGeometry(area.centroidWkt));
+      const feature = new Feature(wkt.readGeometry(area.interiorPointWkt));
       feature.setId(area.id);
       feature.set(NATURE_AREA_NAME, area.name);
       feature.set(NATURE_AREA_AUTHORITY, area.authority);

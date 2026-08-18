@@ -15,13 +15,13 @@ const area: NatureArea = {
   id: "1",
   name: "Veluwe",
   authority: "Gelderland",
-  centroidWkt: "POINT(185000 460000)",
+  interiorPointWkt: "POINT(185000 460000)",
   extentWkt: "POLYGON((180000 455000, 190000 455000, 190000 465000, 180000 465000, 180000 455000))",
 };
 
 describe("nature areas", () => {
   describe("natureAreasToFeatures", () => {
-    it("draws a site at its centroid and remembers its id", () => {
+    it("draws a site at its interior point and remembers its id", () => {
       const [feature] = natureAreasToFeatures([area]);
 
       expect(feature?.getId()).toBe("1");
@@ -44,7 +44,7 @@ describe("nature areas", () => {
     it("skips an unreadable site rather than losing the batch, and says so", () => {
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-      const features = natureAreasToFeatures([{ ...area, id: "bad", centroidWkt: "NOT WKT" }, area]);
+      const features = natureAreasToFeatures([{ ...area, id: "bad", interiorPointWkt: "NOT WKT" }, area]);
 
       expect(features).toHaveLength(1);
       expect(features[0]?.getId()).toBe("1");

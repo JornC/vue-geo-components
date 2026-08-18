@@ -141,7 +141,7 @@ function labelStyle(font: string) {
 type FameNatureArea = {
   id: string;
   name: string;
-  natura2000AreaInfo?: { centroid?: string; extent?: string; authority?: string };
+  natura2000AreaInfo?: { interiorPoint?: string; extent?: string; authority?: string };
 };
 
 /** The sites FAME's nature API publishes, one record each. */
@@ -153,18 +153,18 @@ export async function fetchNatureAreas(host: string, dataset: string): Promise<N
 
   const areas = (await response.json()) as FameNatureArea[];
 
-  const usable = areas.filter((area) => area.natura2000AreaInfo?.centroid && area.natura2000AreaInfo.extent);
+  const usable = areas.filter((area) => area.natura2000AreaInfo?.interiorPoint && area.natura2000AreaInfo.extent);
   for (const area of areas.filter((area) => !usable.includes(area))) {
     // Loud, because a site missing from the map is otherwise indistinguishable from one that is
     // not in the data at all.
-    console.warn(`Skipping Natura 2000 site ${area.id}: it has no centroid or extent.`);
+    console.warn(`Skipping Natura 2000 site ${area.id}: it has no interior point or extent.`);
   }
 
   return usable.map((area) => ({
     id: area.id,
     name: area.name,
     authority: area.natura2000AreaInfo?.authority,
-    centroidWkt: area.natura2000AreaInfo?.centroid as string,
+    interiorPointWkt: area.natura2000AreaInfo?.interiorPoint as string,
     extentWkt: area.natura2000AreaInfo?.extent as string,
   }));
 }
