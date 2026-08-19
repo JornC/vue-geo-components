@@ -49,11 +49,16 @@ Written out for `0.1.0` - substitute your own number:
 
 **Step 1. Bump the version on a branch.**
 
+Any ordinary PR branch will do - your fork, or this repo directly if you have push rights.
+Wherever you normally open PRs from. It only has to reach `main` through a PR rather than
+landing on it directly, which `main` being protected enforces anyway.
+
 ```bash
 git fetch upstream
 git checkout -b release-0.1.0 upstream/main
 npm version 0.1.0 --no-git-tag-version
 git commit -am "0.1.0"
+git push -u origin release-0.1.0
 ```
 
 `--no-git-tag-version` matters: it changes `package.json` and `package-lock.json` and
