@@ -77,7 +77,7 @@ For a stable build (e.g. on an app's release branch), depend on a real release n
 instead of the `dev` tag:
 
 ```bash
-npm install @aerius/vue-geo-components@0.2.0
+npm install @aerius/vue-geo-components@0.1.0
 ```
 
 Real releases are published to the `latest` tag from a GitHub Release - see
