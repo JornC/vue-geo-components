@@ -4,15 +4,10 @@ import WKT from "ol/format/WKT.js";
 import type { Extent } from "ol/extent.js";
 
 /**
- * Natura 2000 sites shown as points on the map.
+ * Natura 2000 sites as point features.
  *
- * A site becomes a point feature carrying its name and its bounding box - never the
- * site's actual boundary, and never a style: how a product draws these is its own,
- * as is fetching the polygons if it needs outlines.
- *
- * Fetching and caching stays with the product as well: every AERIUS product
- * reaches a different service for these, and they differ in when the data goes
- * stale.
+ * A site becomes one point carrying its name and its bounding box, never its own boundary:
+ * a product that needs outlines fetches the polygons itself.
  */
 
 /** Feature property holding a site's extent, as written by {@link natureAreasToFeatures}. */
@@ -46,8 +41,7 @@ const wkt = new WKT();
 /**
  * Turn sites into features ready for a vector source.
  *
- * Sites whose geometry cannot be read are logged and skipped rather than failing
- * the whole batch - one malformed record should not empty the map.
+ * A site whose geometry cannot be read is skipped rather than costing the whole batch.
  */
 export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
   const features: Feature[] = [];
@@ -61,9 +55,8 @@ export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
       feature.set(NATURE_AREA_EXTENT, wkt.readGeometry(area.extentWkt).getExtent());
       features.push(feature);
     } catch (error) {
-      // Unreadable geometry: skip this site, keep the rest. Loud, because a site
-      // missing from the map is otherwise indistinguishable from one that is not
-      // in the data at all.
+      // Loud, because a site dropped here is otherwise indistinguishable from one
+      // that is not in the data at all.
       console.warn(`Skipping Natura 2000 site ${area.id}: geometry could not be read.`, error);
     }
   }
