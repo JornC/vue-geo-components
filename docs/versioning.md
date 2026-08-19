@@ -14,9 +14,10 @@ versioning here is really the question "which of the two am I looking at?"
 Snapshots happen on their own and you never think about them. A release is the only thing
 you actually have to _do_, and it is three steps - bump, merge, tag.
 
-`package.json` holds the **last released version**, and nothing else ever changes it.
-Snapshots don't touch it, so day-to-day work needs no version bump and no version PR. There
-is no automated bump-back.
+`package.json` holds the **last released version**. It sits at `0.0.0` until the first
+release is cut, and after that it moves only when you cut another one. Snapshots never touch
+it, so day-to-day work needs no version bump and no version PR, and there is no automated
+bump-back.
 
 ## Snapshots (the `dev` tag)
 
@@ -67,7 +68,8 @@ GitHub creates it for you in step 3.
 
 **Step 2. Open a PR with that bump and merge it into `main`.**
 
-It is a two-line diff. After it merges, `main`'s `package.json` says `0.1.0`.
+That is `main` on `aerius/vue-geo-components`, the same place every other PR goes. It is a
+two-line diff. After it merges, `main`'s `package.json` says `0.1.0`.
 
 **Step 3. Publish a GitHub Release.**
 
@@ -83,14 +85,23 @@ published version is whatever `package.json` holds at the tagged commit - CI nev
 or commits a version. A guard fails the run if `package.json` and the tag disagree, so a
 mistyped tag can't publish the wrong number.
 
+The leading `v` is fine - the guard strips it before comparing, so tag `v0.1.0` matches a
+`package.json` reading `0.1.0`. If the run does fail that check, delete the Release and its
+tag on GitHub, fix whichever side is wrong, and cut it again. Nothing was published, so
+there is nothing to undo on Nexus.
+
 **Step 4. Check it landed.**
 
 ```bash
-npm view @aerius/vue-geo-components dist-tags
+npm dist-tag ls @aerius/vue-geo-components \
+  --registry=https://nexus.aerius.nl/repository/npm/
 ```
 
 You should see `latest: 0.1.0` alongside the `dev` entry. Apps can now pin the exact release
 with `npm install @aerius/vue-geo-components@0.1.0`.
+
+Run it from anywhere except a checkout of this repo. This repo's `.npmrc` sets `always-auth`
+for Nexus, so outside CI npm sends an empty credential and gets a 401 back.
 
 ### Which number do I pick?
 
@@ -98,12 +109,16 @@ Releases here are pulled by demand from the consuming apps (GRIP, archive-servic
 than pushed on a roadmap, so you choose the number when you cut the release, looking at a
 diff that already exists.
 
-While on `0.x`, npm treats the **minor** as the breaking position - `^0.1.2` means
-`>=0.1.2 <0.2.0`. So:
+One question decides it: **can this break an app that upgrades?**
 
-- `0.1.0` -> `0.1.1` (`patch`) - fixes and additions that can't break a consumer
-- `0.1.0` -> `0.2.0` (`minor`) - anything that can break a consumer, while on `0.x`
-- `0.1.0` -> `1.0.0` (`major`) - once the API is considered stable
+- **No** - bump the last digit: `0.1.0` -> `0.1.1`
+- **Yes** - bump the middle digit: `0.1.0` -> `0.2.0`
+
+An app that asks for `^0.1.0` picks up `0.1.1` on its own but will never jump to `0.2.0` by
+itself - someone has to go and ask for it. That is the whole reason breaking changes go in
+the middle digit.
+
+`1.0.0` is a separate decision, for when the API is considered stable.
 
 ## What each workflow does
 
@@ -136,6 +151,9 @@ None of these are broken, but they surprise people:
   release even though its code is newer. Again harmless for tag-based resolution, and it
   keeps snapshots out of release ranges like `^0.1.0` (npm excludes prereleases from ranges),
   which is what you want.
+- **`npm view` can tell you nothing, silently.** It resolves the `latest` tag by default, so
+  before the first release exists it prints nothing at all and still exits 0 - it does not
+  say why. `npm dist-tag ls` always answers.
 - **`npm ci` never tells you your pin is stale.** Under a tag spec like `"dev"`, npm accepts
   whatever version the lockfile already pins - it will not notice that `dev` has moved on.
   Moving forward is always a deliberate `npm update` in the consuming app.
@@ -143,6 +161,9 @@ None of these are broken, but they surprise people:
   version", not "what's on main now". The moment the next PR merges it is behind by design.
 
 ## Infra behind the publishing
+
+This is all in place already - snapshots have been publishing since the repo went up. The
+list is what a new repo would need, and what to check if publishing ever breaks.
 
 - The npm repository on Nexus. The URL is hardcoded in the repo's own
   [`.npmrc`](../.npmrc) as `@aerius:registry=https://nexus.aerius.nl/repository/npm/`;
