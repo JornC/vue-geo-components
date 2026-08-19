@@ -69,14 +69,8 @@ export {
   createPdokProvinceBoundaryLayer,
 } from "./layers/pdok";
 
-// Natura 2000 sites as map points. Fetching them stays with the product.
-export {
-  NATURE_AREA_AUTHORITY,
-  NATURE_AREA_EXTENT,
-  NATURE_AREA_NAME,
-  natureAreaExtent,
-  natureAreasToFeatures,
-} from "./layers/natureAreas";
+// Natura 2000 sites as point features.
+export { NATURE_AREA_AUTHORITY, NATURE_AREA_EXTENT, NATURE_AREA_NAME, natureAreaExtent, natureAreasToFeatures } from "./layers/natureAreas";
 export type { NatureArea } from "./layers/natureAreas";
 
 // Layer plumbing.

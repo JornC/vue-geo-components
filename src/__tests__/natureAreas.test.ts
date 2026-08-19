@@ -1,13 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createHandleFeatureClicked } from "@/layers/featureInteraction";
-import {
-  NATURE_AREA_AUTHORITY,
-  NATURE_AREA_NAME,
-  natureAreaExtent,
-  natureAreasToFeatures,
-  type NatureArea,
-} from "@/layers/natureAreas";
+import { NATURE_AREA_AUTHORITY, NATURE_AREA_NAME, natureAreaExtent, natureAreasToFeatures, type NatureArea } from "@/layers/natureAreas";
 
 const area: NatureArea = {
   id: "1",
