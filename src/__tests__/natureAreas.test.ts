@@ -1,4 +1,3 @@
-import Style from "ol/style/Style.js";
 import { describe, expect, it, vi } from "vitest";
 
 import { createHandleFeatureClicked } from "@/layers/featureInteraction";
@@ -6,7 +5,6 @@ import {
   NATURE_AREA_AUTHORITY,
   NATURE_AREA_NAME,
   natureAreaExtent,
-  natureAreaPointStyle,
   natureAreasToFeatures,
   type NatureArea,
 } from "@/layers/natureAreas";
@@ -51,20 +49,6 @@ describe("nature areas", () => {
       expect(warn).toHaveBeenCalledWith(expect.stringContaining("bad"), expect.anything());
 
       warn.mockRestore();
-    });
-  });
-
-  describe("natureAreaPointStyle", () => {
-    it("is a single dot", () => {
-      const [feature] = natureAreasToFeatures([area]);
-
-      expect(natureAreaPointStyle(feature!)).toBeInstanceOf(Style);
-    });
-
-    it("never draws the name, which is the product's to place", () => {
-      const [feature] = natureAreasToFeatures([area]);
-
-      expect(natureAreaPointStyle(feature!).getText()).toBeFalsy();
     });
   });
 });

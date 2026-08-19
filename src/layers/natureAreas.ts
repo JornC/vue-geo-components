@@ -2,24 +2,18 @@ import Feature from "ol/Feature.js";
 import type { FeatureLike } from "ol/Feature.js";
 import WKT from "ol/format/WKT.js";
 import type { Extent } from "ol/extent.js";
-import Circle from "ol/style/Circle.js";
-import Fill from "ol/style/Fill.js";
-import Style from "ol/style/Style.js";
 
 /**
  * Natura 2000 sites shown as points on the map.
  *
- * A site is drawn at a point inside it, and picking one flies the map to the site's
- * bounding box. So a feature here carries a point and four numbers - never the
- * site's actual boundary. Nothing in this module can outline a site; a product
- * that needs outlines has to fetch the polygons and render them itself.
+ * A site becomes a point feature carrying its name and its bounding box - never the
+ * site's actual boundary, and never a style: how a product draws these is its own,
+ * as is fetching the polygons if it needs outlines.
  *
  * Fetching and caching stays with the product as well: every AERIUS product
  * reaches a different service for these, and they differ in when the data goes
  * stale.
  */
-
-const AERIUS_DARK_BLUE = "#193884";
 
 /** Feature property holding a site's extent, as written by {@link natureAreasToFeatures}. */
 export const NATURE_AREA_EXTENT = "extent";
@@ -80,25 +74,4 @@ export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
 /** The extent stored on a site feature, if it has one. */
 export function natureAreaExtent(feature: FeatureLike | undefined): Extent | undefined {
   return feature?.get(NATURE_AREA_EXTENT) as Extent | undefined;
-}
-
-const defaultStyle = new Style({
-  image: new Circle({
-    radius: 5,
-    fill: new Fill({ color: AERIUS_DARK_BLUE }),
-  }),
-});
-
-/**
- * Style for a Natura 2000 site point: a dot, and only that.
- *
- * Marking out the point under the pointer, and naming it, are the product's to draw:
- * a name bundled in here would be a name on the canvas, and a product may want it in
- * the DOM, where it is styled and read like the rest of its interface.
- *
- * Takes the feature so it can be handed to OpenLayers as a layer's style function,
- * though every site is drawn alike.
- */
-export function natureAreaPointStyle(_feature?: FeatureLike): Style {
-  return defaultStyle;
 }

@@ -75,7 +75,6 @@ export {
   NATURE_AREA_EXTENT,
   NATURE_AREA_NAME,
   natureAreaExtent,
-  natureAreaPointStyle,
   natureAreasToFeatures,
 } from "./layers/natureAreas";
 export type { NatureArea } from "./layers/natureAreas";
