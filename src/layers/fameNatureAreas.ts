@@ -141,7 +141,7 @@ function labelStyle(font: string) {
 type FameNatureArea = {
   id: string;
   name: string;
-  natura2000AreaInfo?: { interiorPoint?: string; extent?: string; authority?: string };
+  natura2000AreaInfo?: { interiorPoint?: string; extent?: string };
 };
 
 /** The sites FAME's nature API publishes, one record each. */
@@ -163,7 +163,6 @@ export async function fetchNatureAreas(host: string, dataset: string): Promise<N
   return usable.map((area) => ({
     id: area.id,
     name: area.name,
-    authority: area.natura2000AreaInfo?.authority,
     interiorPointWkt: area.natura2000AreaInfo?.interiorPoint as string,
     extentWkt: area.natura2000AreaInfo?.extent as string,
   }));

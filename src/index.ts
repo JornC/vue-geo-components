@@ -70,7 +70,7 @@ export {
 } from "./layers/pdok";
 
 // Natura 2000 sites as point features.
-export { NATURE_AREA_AUTHORITY, NATURE_AREA_EXTENT, NATURE_AREA_NAME, natureAreaExtent, natureAreasToFeatures } from "./layers/natureAreas";
+export { NATURE_AREA_EXTENT, NATURE_AREA_NAME, natureAreasToFeatures } from "./layers/natureAreas";
 export type { NatureArea } from "./layers/natureAreas";
 
 // Layer plumbing.

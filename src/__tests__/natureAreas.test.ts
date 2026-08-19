@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createHandleFeatureClicked } from "@/layers/featureInteraction";
-import { NATURE_AREA_AUTHORITY, NATURE_AREA_NAME, natureAreaExtent, natureAreasToFeatures, type NatureArea } from "@/layers/natureAreas";
+import { NATURE_AREA_EXTENT, NATURE_AREA_NAME, natureAreasToFeatures, type NatureArea } from "@/layers/natureAreas";
 
 const area: NatureArea = {
   id: "1",
   name: "Veluwe",
-  authority: "Gelderland",
   interiorPointWkt: "POINT(185000 460000)",
   extentWkt: "POLYGON((180000 455000, 190000 455000, 190000 465000, 180000 465000, 180000 455000))",
 };
@@ -20,17 +19,16 @@ describe("nature areas", () => {
       expect(feature?.getGeometry()?.getType()).toBe("Point");
     });
 
-    it("carries the name and authority as properties", () => {
+    it("carries the name as a property", () => {
       const [feature] = natureAreasToFeatures([area]);
 
       expect(feature?.get(NATURE_AREA_NAME)).toBe("Veluwe");
-      expect(feature?.get(NATURE_AREA_AUTHORITY)).toBe("Gelderland");
     });
 
     it("stores the site extent for zooming to it later", () => {
       const [feature] = natureAreasToFeatures([area]);
 
-      expect(natureAreaExtent(feature)).toEqual([180000, 455000, 190000, 465000]);
+      expect(feature?.get(NATURE_AREA_EXTENT)).toEqual([180000, 455000, 190000, 465000]);
     });
 
     it("skips an unreadable site rather than losing the batch, and says so", () => {

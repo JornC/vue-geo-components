@@ -1,7 +1,5 @@
 import Feature from "ol/Feature.js";
-import type { FeatureLike } from "ol/Feature.js";
 import WKT from "ol/format/WKT.js";
-import type { Extent } from "ol/extent.js";
 
 /**
  * Natura 2000 sites as point features.
@@ -16,9 +14,6 @@ export const NATURE_AREA_EXTENT = "extent";
 /** Feature property holding a site's name. */
 export const NATURE_AREA_NAME = "name";
 
-/** Feature property holding the authority responsible for a site. */
-export const NATURE_AREA_AUTHORITY = "authority";
-
 /**
  * A Natura 2000 site, in the shape this module needs it.
  *
@@ -29,7 +24,6 @@ export const NATURE_AREA_AUTHORITY = "authority";
 export type NatureArea = {
   id: string;
   name: string;
-  authority?: string;
   /** Point the site is drawn at. Not a centroid: the centre of a crescent falls outside it. */
   interiorPointWkt: string;
   /** Any geometry covering the site; only its bounding box is kept. */
@@ -51,7 +45,6 @@ export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
       const feature = new Feature(wkt.readGeometry(area.interiorPointWkt));
       feature.setId(area.id);
       feature.set(NATURE_AREA_NAME, area.name);
-      feature.set(NATURE_AREA_AUTHORITY, area.authority);
       feature.set(NATURE_AREA_EXTENT, wkt.readGeometry(area.extentWkt).getExtent());
       features.push(feature);
     } catch (error) {
@@ -62,9 +55,4 @@ export function natureAreasToFeatures(areas: NatureArea[]): Feature[] {
   }
 
   return features;
-}
-
-/** The extent stored on a site feature, if it has one. */
-export function natureAreaExtent(feature: FeatureLike | undefined): Extent | undefined {
-  return feature?.get(NATURE_AREA_EXTENT) as Extent | undefined;
 }
