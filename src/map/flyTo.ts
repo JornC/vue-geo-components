@@ -46,6 +46,17 @@ export interface FlyController {
   cancel(): void;
 }
 
+const mapFlights = new WeakMap<Map, FlyController>();
+
+export function mapFlightFor(map: Map): FlyController {
+  let flight = mapFlights.get(map);
+  if (!flight) {
+    flight = createMapFlyTo(map.getView(), map);
+    mapFlights.set(map, flight);
+  }
+  return flight;
+}
+
 type ZoomView = [number, number, number];
 type RhoZoomFactory = (a: ZoomView, b: ZoomView) => ((t: number) => ZoomView) & { duration: number };
 
@@ -63,12 +74,14 @@ export function createMapFlyTo(view: View, map: Map, options: FlyOptions = {}): 
   const zoom = tunedZoomFactory(rho);
 
   let rafId: number | null = null;
+  let activeTarget: FlyTarget | null = null;
 
   const cancel = (): void => {
     if (rafId !== null) {
       cancelAnimationFrame(rafId);
       rafId = null;
     }
+    activeTarget = null;
   };
 
   const flyTo = (target: FlyTarget): void => {
@@ -99,6 +112,10 @@ export function createMapFlyTo(view: View, map: Map, options: FlyOptions = {}): 
       return; // already there
     }
 
+    if (activeTarget?.center[0] === targetX && activeTarget.center[1] === targetY && activeTarget.zoom === target.zoom) {
+      return;
+    }
+
     cancel();
     view.cancelAnimations();
 
@@ -110,6 +127,7 @@ export function createMapFlyTo(view: View, map: Map, options: FlyOptions = {}): 
 
     const path = zoom(p0, p1);
     const duration = Math.min(maxDuration, Math.max(minDuration, path.duration * speedFactor));
+    activeTarget = { center: [targetX, targetY], zoom: target.zoom };
 
     let startTime: number | null = null;
     const step = (now: number): void => {
@@ -120,6 +138,9 @@ export function createMapFlyTo(view: View, map: Map, options: FlyOptions = {}): 
       view.setCenter([cx, cy]);
       view.setResolution(w / widthPx);
       rafId = t < 1 ? requestAnimationFrame(step) : null;
+      if (rafId === null) {
+        activeTarget = null;
+      }
     };
     rafId = requestAnimationFrame(step);
   };

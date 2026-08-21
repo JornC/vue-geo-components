@@ -102,3 +102,13 @@ export type { LabelPlacement } from "./map/labelPlacement";
 // Handing a detailed background over to an overview as the map zooms out.
 // What fades in, and how it looks, stays with the product.
 export { applyBackgroundFade, backgroundFadeProgress, maxResolution } from "./map/backgroundFade";
+
+// Map search: a panel over the AERIUS search service, and the headless state
+// and map actions around it. The panel takes your i18n translator so the
+// library takes on no i18n dependency.
+export { default as MapSearchPanel } from "./components/MapSearchPanel.vue";
+
+export { applySearchSuggestion } from "./search/searchActions";
+export { createSearchService, type SearchService } from "./search/searchService";
+export { useMapSearch, type MapSearch, type MapSearchOptions } from "./search/useMapSearch";
+export type { SearchCapability, SearchConfig, SearchFetcher, SearchResult, SearchSuggestion } from "./search/searchTypes";
