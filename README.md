@@ -64,12 +64,21 @@ Every push to this library's `main` publishes a new `dev` snapshot. Pull the new
 into the app with:
 
 ```bash
-npm update @aerius/vue-geo-components
+npm install @aerius/vue-geo-components@dev
+npm pkg set 'dependencies.@aerius/vue-geo-components=dev'
 ```
 
-Each snapshot has a unique version, so this always works cleanly. The app stays on whatever
-is locked in its `package-lock.json` until you run `npm update`, so `npm ci` stays
-reproducible. See [docs/versioning.md](./docs/versioning.md).
+Do not use `npm update @aerius/vue-geo-components` here. It says "up to date" and does
+nothing. Snapshot versions are named after the commit, not the date, so npm often thinks
+the newest one is older than the one you already have - and npm never moves a package to
+an older version. Installing the tag by hand skips that check.
+
+The second line puts `dev` back in `package.json`. The install writes the exact snapshot
+number there instead, and that would stop the tag from working next time.
+
+The app stays on whatever its `package-lock.json` says until you run those two lines, so
+`npm ci` keeps giving everyone the same build. See
+[docs/versioning.md](./docs/versioning.md).
 
 ## Pin a released version
 

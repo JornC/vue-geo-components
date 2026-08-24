@@ -32,10 +32,12 @@ track the newest build without waiting for a release.
 - Every snapshot version is unique, so there is never a stale-cache or re-publish problem.
 - The `dev` tag always points at the newest snapshot.
 
-Apps opt in by depending on the `dev` tag and moving forward with `npm update` - see
+Apps opt in by depending on the `dev` tag and moving forward with
+`npm install @aerius/vue-geo-components@dev` - see
 ["Use the newest build" in the README](../README.md#use-the-newest-build). An app pins the
 exact snapshot it resolved in its own `package-lock.json`, so `npm ci` stays reproducible;
-the tag only decides what `npm update` pulls forward.
+the tag only decides what that install pulls forward. Don't use `npm update` for this - see
+the rough edges below.
 
 Old `-dev-` snapshots accumulate on every push, so Nexus should prune them on a retention
 policy (like Maven `-SNAPSHOT`). Keep them long enough to cover how far back you rebuild
@@ -140,12 +142,19 @@ stray local `npm publish` can't reach Nexus.
 
 None of these are broken, but they surprise people:
 
-- **Snapshot versions do not sort chronologically.** `0.0.0-dev-<sha7>` sorts by the hex
-  characters of the SHA, which have nothing to do with time - of the snapshots published so
-  far, 4 of 11 consecutive pairs go _backwards_ by semver precedence. This is harmless
-  because the `dev` tag is resolved by _name_, not by version order, so `npm update` always
-  gets the newest one. Just don't try to tell which of two snapshots is newer by reading
-  their numbers - compare the SHAs against git history instead.
+- **Snapshot versions do not sort by date, and that is why apps update the way they do.**
+  `0.0.0-dev-<sha7>` is named after the commit SHA, and a SHA says nothing about time. Of
+  the snapshots published so far, 7 of 16 pairs go _backwards_ by semver. npm still finds
+  the newest snapshot, because it looks the `dev` tag up by name. It just won't move a
+  package to a lower version. So about half the time `npm update @aerius/vue-geo-components`
+  fetches the right snapshot, decides it is a step back, says "up to date" and does nothing.
+  Use `npm install @aerius/vue-geo-components@dev` instead - an install just does what you
+  ask. Two more traps. `npm update @aerius/vue-geo-components@dev` is not a real command:
+  `npm update` only takes plain package names and errors with `EUPDATEARGS`. And plain
+  `npm update`, with nothing after it, _does_ move the snapshot - it throws the lockfile
+  away and works the whole tree out again - but it updates every other package in the app
+  too. Last thing: you can't tell which of two snapshots is newer by reading their numbers.
+  Compare the SHAs against git history.
 - **After a release, snapshots still say `0.0.0-...`.** The snapshot base is hardcoded, so a
   snapshot built the day after `0.1.0` still reads `0.0.0-dev-<sha7>` and sorts _below_ the
   release even though its code is newer. Again harmless for tag-based resolution, and it
@@ -156,7 +165,8 @@ None of these are broken, but they surprise people:
   say why. `npm dist-tag ls` always answers.
 - **`npm ci` never tells you your pin is stale.** Under a tag spec like `"dev"`, npm accepts
   whatever version the lockfile already pins - it will not notice that `dev` has moved on.
-  Moving forward is always a deliberate `npm update` in the consuming app.
+  Moving forward is always a deliberate `npm install @aerius/vue-geo-components@dev` in the
+  consuming app.
 - **`package.json` on `main` is only accurate at release time.** It says "last released
   version", not "what's on main now". The moment the next PR merges it is behind by design.
 
