@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   lint:
+    if: github.repository == 'aerius/vue-geo-components'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -21,6 +22,7 @@ jobs:
       - run: npm run lint
 
   format:
+    if: github.repository == 'aerius/vue-geo-components'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -32,6 +34,7 @@ jobs:
       - run: npm run format:check
 
   type-check:
+    if: github.repository == 'aerius/vue-geo-components'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -43,6 +46,7 @@ jobs:
       - run: npm run type-check
 
   test:
+    if: github.repository == 'aerius/vue-geo-components'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -54,6 +58,7 @@ jobs:
       - run: npm test
 
   build:
+    if: github.repository == 'aerius/vue-geo-components'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
