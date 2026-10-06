@@ -32,10 +32,12 @@ track the newest build without waiting for a release.
 - Every snapshot version is unique, so there is never a stale-cache or re-publish problem.
 - The `dev` tag always points at the newest snapshot.
 
-Apps opt in by depending on the `dev` tag and moving forward with `npm update` - see
-["Use the newest build" in the README](../README.md#use-the-newest-build). An app pins the
-exact snapshot it resolved in its own `package-lock.json`, so `npm ci` stays reproducible;
-the tag only decides what `npm update` pulls forward.
+Apps can try the newest snapshot locally with their `geo-lib.sh update` wrapper, which
+installs `@dev` with `--no-save`. To adopt it for teammates and CI, run
+`npm install --save-exact @aerius/vue-geo-components@dev` in the app's frontend directory
+and commit `package.json` and `package-lock.json`. Repeat that command to adopt a newer
+snapshot; `npm ci` stays reproducible. See
+["Use the newest build" in the README](../README.md#use-the-newest-build).
 
 Old `-dev-` snapshots accumulate on every push, so Nexus should prune them on a retention
 policy (like Maven `-SNAPSHOT`). Keep them long enough to cover how far back you rebuild
@@ -143,9 +145,8 @@ None of these are broken, but they surprise people:
 - **Snapshot versions do not sort chronologically.** `0.0.0-dev-<sha7>` sorts by the hex
   characters of the SHA, which have nothing to do with time - of the snapshots published so
   far, 4 of 11 consecutive pairs go _backwards_ by semver precedence. This is harmless
-  because the `dev` tag is resolved by _name_, not by version order, so `npm update` always
-  gets the newest one. Just don't try to tell which of two snapshots is newer by reading
-  their numbers - compare the SHAs against git history instead.
+  because an explicit `@dev` install resolves the tag by _name_, not by version order.
+  Just don't try to tell which of two snapshots is newer by reading their numbers - compare the SHAs against git history instead.
 - **After a release, snapshots still say `0.0.0-...`.** The snapshot base is hardcoded, so a
   snapshot built the day after `0.1.0` still reads `0.0.0-dev-<sha7>` and sorts _below_ the
   release even though its code is newer. Again harmless for tag-based resolution, and it
@@ -156,7 +157,8 @@ None of these are broken, but they surprise people:
   say why. `npm dist-tag ls` always answers.
 - **`npm ci` never tells you your pin is stale.** Under a tag spec like `"dev"`, npm accepts
   whatever version the lockfile already pins - it will not notice that `dev` has moved on.
-  Moving forward is always a deliberate `npm update` in the consuming app.
+  Moving forward requires an explicit update in the consuming app, such as the saved
+  `@dev` install above.
 - **`package.json` on `main` is only accurate at release time.** It says "last released
   version", not "what's on main now". The moment the next PR merges it is behind by design.
 

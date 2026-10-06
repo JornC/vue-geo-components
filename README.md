@@ -20,10 +20,10 @@ peer dependencies: the library does not bundle them, it uses the app's own copie
 (If reads need a login, run
 `npm login --scope=@aerius --registry=https://nexus.aerius.nl/repository/npm/` once.)
 
-**2. Install it**, plus the peer dependencies if the app doesn't already have them:
+**2. Install the newest development build**, plus any missing peer dependencies:
 
 ```bash
-npm install @aerius/vue-geo-components
+npm install --save-exact @aerius/vue-geo-components@dev
 npm install ol vue proj4 pinia
 ```
 
@@ -46,30 +46,34 @@ get the map with `useMap()`.
 
 ## Use the newest build
 
-Say an app uses this library and you want to always work against the latest version.
-There are two cases:
-
-**You are editing the library too.** Use yalc: your local library changes show up in the
-app the moment you save - live, with nothing to publish. This is the fastest loop. See
-[docs/local-development.md](./docs/local-development.md).
-
-**You just want the newest published build** (you're not editing the library). Depend on
-the `dev` tag in the app's `package.json`:
-
-```json
-"@aerius/vue-geo-components": "dev"
-```
-
-Every push to this library's `main` publishes a new `dev` snapshot. Pull the newest one
-into the app with:
+For a local update in GRIP, run this from the GRIP repository root:
 
 ```bash
-npm update @aerius/vue-geo-components
+./dev/geo-lib.sh update
 ```
 
-Each snapshot has a unique version, so this always works cleanly. The app stays on whatever
-is locked in its `package-lock.json` until you run `npm update`, so `npm ci` stays
-reproducible. See [docs/versioning.md](./docs/versioning.md).
+The Geo lib pane in GRIP's development stack also offers **U** to update in published
+mode and **S** to switch between a published build and a local checkout. The scripts
+use the `dev` tag explicitly. `update` and `unlink` install with `--no-save`, so they
+leave the app's `package.json` and lockfile unchanged.
+
+To adopt the newest snapshot for teammates and CI, run this in the app's frontend
+directory and commit both dependency files. If currently linked, run
+`./dev/geo-lib.sh unlink` from the GRIP root first:
+
+```bash
+npm install --save-exact @aerius/vue-geo-components@dev
+```
+
+This resolves `dev` to a specific `0.0.0-dev-<sha>` version and saves it. Repeat the
+command to adopt a newer snapshot; `npm ci` installs the locked version. A plain
+reinstall does not move a release dependency such as `^0.1.0` onto development builds.
+`latest` is the release tag; `dev` points to the newest published snapshot from `main`.
+See [docs/versioning.md](./docs/versioning.md).
+
+To edit the library alongside an app, use the direct-symlink workflow in
+[docs/local-development.md](./docs/local-development.md). It also explains how apps
+without GRIP's wrapper can call the shared scripts.
 
 ## Pin a released version
 
